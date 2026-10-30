@@ -283,10 +283,10 @@
 
 <script>
     const INCOME_RATES = {
-        inc_beehive: 1, inc_carpenter: 10, inc_dovecote: 5, inc_forest: 1, inc_livestock: 1, 
-        inc_mill: 10, inc_millpond: 5, inc_oven: 5, inc_smith: 20, inc_staples: 1,
-        inc_cotton: 1, inc_flax: 1, inc_hemp: 1, inc_lumber: 1, inc_olive: 1, 
-        inc_orchard: 1, inc_wool: 1, inc_vineyard: 2
+        inc_beehive: 1, inc_carpenter: 11.5, inc_dovecote: 5, inc_forest: 4, inc_livestock: 17, 
+        inc_mill: 575, inc_millpond: 29, inc_oven: 134, inc_smith: 11.5, inc_staples: 7.2,
+        inc_cotton: 85, inc_flax: 75, inc_hemp: 75, inc_lumber: 400, inc_olive: 300, 
+        inc_orchard: 10, inc_wool: 5.5, inc_vineyard: 170
     };
 
     const INCOME_LABELS = {
@@ -298,9 +298,9 @@
         inc_orchard: "Orchard", inc_wool: "Wool", inc_vineyard: "Vineyard"
     };
 
-    const MINE_TYPES = ["Iron", "Lead", "Coal", "Copper", "Salt", "Tin", "Sandstone", "Limestone", "Granite", "Slate", "Marble", "Common Gems", "Quality Gems", "High Quality Gems", "Silver", "Gold"];
+   const MINE_TYPES = ["Iron", "Lead", "Coal", "Copper", "Salt", "Tin", "Sandstone", "Limestone", "Granite", "Slate", "Marble", "Common Gems", "Quality Gems", "High Quality Gems", "Silver", "Gold"];
     const YIELD_TYPES = ["Single", "Double", "Triple"];
-    const MINE_RATES = { "Iron": 10, "Lead": 10, "Coal": 5, "Copper": 15, "Salt": 20, "Tin": 15, "Sandstone": 5, "Limestone": 5, "Granite": 10, "Slate": 5, "Marble": 20, "Common Gems": 50, "Quality Gems": 100, "High Quality Gems": 250, "Silver": 100, "Gold": 500 };
+    const MINE_RATES = { "Iron": 2000, "Lead": 2000, "Coal": 2000, "Copper": 2000, "Salt": 3333, "Tin": 3333, "Sandstone": 2000, "Limestone": 2666, "Granite": 3333, "Slate": 4000, "Marble": 4666, "Common Gems": 4250, "Quality Gems": 13500, "High Quality Gems": 43500, "Silver": 5500, "Gold": 16500 };
     const YIELD_MULTIPLIERS = { "Single": 1, "Double": 2, "Triple": 3 };
 
     const EVENTS = [
