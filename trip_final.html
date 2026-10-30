@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎲 Trip Planner: Weather & Encounters</title>
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --text: #212529;
+      --border: #dee2e6;
+      --accent: #0d6efd;
+      --accent-hover: #0b5ed7;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: var(--card);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h1 { text-align: center; margin-bottom: 20px; }
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    input, button {
+      padding: 10px 14px;
+      font-size: 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    button {
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      border: none;
+      font-weight: 500;
+    }
+    button:hover { background: var(--accent-hover); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f1f3f5; font-weight: 600; }
+    .no-encounter { color: #6c757d; font-style: italic; }
+    .encounter-tag { display: inline-block; font-weight: 600; margin-bottom: 4px; }
+    .rarity-very { color: #d65a31; }
+    .rarity-rare { color: #7048c0; }
+    .rarity-uncommon { color: #28a745; }
+    .rarity-common { color: #0d6efd; } /* Blue */
+    .int-friendly { color: #28a745; }
+    .int-neutral { color: #0d6efd; }    /* Blue */
+    .int-unfriendly { color: #ffc107; }
+    .int-hostile { color: #dc3545; font-weight: bold; }
+    .special { color: #d63384; font-weight: bold; }
+    .weather-row { display: flex; flex-direction: column; gap: 4px; }
+    .weather-tag {
+      display: inline-flex;
+      align-items: center;
+      background: #e9ecef;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      white-space: nowrap;
+    }
+    .dice-info { font-size: 0.8em; color: #888; }
+    .nav-btn-wrap {
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .nav-btn {
+      background: #6c757d;
+      color: white;
+      padding: 10px 24px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .nav-btn:hover { background: #5a6268; }
+    @media (max-width: 768px) {
+      table, thead, tbody, th, td, tr { display: block; }
+      thead tr { position: absolute; top: -9999px; left: -9999px; }
+      tr { margin-bottom: 15px; border: 1px solid var(--border); }
+      td { border: none; border-bottom: 1px solid var(--border); position: relative; padding-left: 50%; }
+      td:before { position: absolute; top: 12px; left: 12px; width: 45%; padding-right: 10px; white-space: nowrap; font-weight: bold; content: attr(data-label); }
+    }
+    @media print {
+      .nav-btn-wrap { display: none; }
+      .controls { display: none; }
+      body { background: white; padding: 0; }
+      .container { box-shadow: none; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🗺️ Trip Planner</h1>
+    <div class="controls">
+      <input type="number" id="daysInput" min="1" max="365" placeholder="Days (e.g. 7)" value="7">
+      <button onclick="generateTrip()">Generate Trip</button>
+      <button onclick="window.print()" style="background:#6c757d;">🖨️ Print / Save PDF</button>
+    </div>
+    <div id="results"></div>
+    
+    <!-- ⬇️ BACK TO INDEX BUTTON ⬇️ -->
+    <div class="nav-btn-wrap">
+      <!-- CHANGE THE URL BELOW TO YOUR ACTUAL INDEX PAGE -->
+      <a href="index.html" class="nav-btn">← Back to Index</a>
+    </div>
+  </div>
+
+  <script>
+    // Utility: Roll XdY
+    function rollDie(sides) { return Math.floor(Math.random() * sides) + 1; }
+    function roll2d10() { return rollDie(10) + rollDie(10); }
+
+    // Independent Weather Rollers (d20 tables from reference doc)
+    function rollTemp() {
+      let r = rollDie(20);
+      if (r >= 15 && r <= 17) return `${rollDie(4) * 10}°F colder`;
+      if (r >= 18) return `${rollDie(4) * 10}°F hotter`;
+      return "Normal for the season";
+    }
+    function rollWind() {
+      let r = rollDie(20);
+      if (r >= 13 && r <= 17) return "Light";
+      if (r >= 18) return "Strong";
+      return "None";
+    }
+    function rollPrec() {
+      let r = rollDie(20);
+      if (r >= 13 && r <= 17) return "Light rain/snow";
+      if (r >= 18) return "Heavy rain/snow";
+      return "None";
+    }
+
+    // Encounter Generation (Matches reference logic exactly)
+    function generateEncounter(timeOfDay) {
+      let chance = timeOfDay === "Night" ? rollDie(12) : rollDie(8);
+      if (chance !== 1) return null;
+
+      let watchNum = timeOfDay === "Night" ? rollDie(3) : null;
+      
+      let rRoll = roll2d10();
+      let rarity = "Common";
+      if (rRoll === 2 || rRoll === 20) rarity = "Very Rare";
+      else if ([3,4,18,19].includes(rRoll)) rarity = "Rare";
+      else if ([5,6,7,15,16,17].includes(rRoll)) rarity = "Uncommon";
+
+      let iRoll = rollDie(100);
+      let intensity = "Neutral";
+      if (iRoll < 25) intensity = "Friendly";
+      else if (iRoll <= 75) intensity = "Neutral";
+      else if (iRoll <= 95) intensity = "Unfriendly";
+      else intensity = "Hostile";
+
+      let special = null;
+      if (iRoll === 86) {
+        let sRoll = rollDie(100);
+        special = sRoll === 86 ? "Hostile Unique" : "Hostile Special";
+      } else if (iRoll === 69) {
+        let sRoll = rollDie(100);
+        special = sRoll === 69 ? "Friendly Unique" : "Friendly Special";
+      }
+
+      return { timeOfDay, watchNum, rarity, rRoll, intensity, iRoll, special };
+    }
+
+    // Main Generator
+    function generateTrip() {
+      const days = parseInt(document.getElementById('daysInput').value);
+      if (isNaN(days) || days < 1) return alert("Please enter a valid number of days (1+).");
+
+      let html = `<table><thead><tr>
+        <th data-label="Day">Day</th>
+        <th data-label="AM">AM Encounter</th>
+        <th data-label="PM">PM Encounter</th>
+        <th data-label="Night">Night Encounter</th>
+        <th data-label="Weather">Weather</th>
+      </tr></thead><tbody>`;
+
+      // Initialize weather states & independent cycle timers
+      let currentTemp = rollTemp();
+      let currentWind = rollWind();
+      let currentPrec = rollPrec();
+
+      let tempTimer = rollDie(8);
+      let windTimer = rollDie(6);
+      let precTimer = rollDie(4);
+
+      for (let i = 1; i <= days; i++) {
+        // Decrement independent timers
+        tempTimer--;
+        windTimer--;
+        precTimer--;
+
+        // Roll new weather if timer expires
+        if (tempTimer <= 0) { currentTemp = rollTemp(); tempTimer = rollDie(8); }
+        if (windTimer <= 0) { currentWind = rollWind(); windTimer = rollDie(6); }
+        if (precTimer <= 0) { currentPrec = rollPrec(); precTimer = rollDie(4); }
+
+        const am = generateEncounter("AM");
+        const pm = generateEncounter("PM");
+        const night = generateEncounter("Night");
+
+        const fmtEnc = (e) => {
+          if (!e) return `<span class="no-encounter">No encounter</span>`;
+          let rClass = `rarity-${e.rarity.toLowerCase().replace(' ', '-')}`;
+          let iClass = `int-${e.intensity.toLowerCase()}`;
+          let specialHtml = e.special ? `<br><span class="special">★ ${e.special}</span>` : '';
+          let watchHtml = e.watchNum ? `<br>Watch #${e.watchNum}` : '';
+          return `<span class="encounter-tag">⚠️ Encounter!</span><br>
+                  <span class="${rClass}">${e.rarity}</span> <span class="dice-info">(${e.rRoll})</span><br>
+                  <span class="${iClass}">${e.intensity}</span> <span class="dice-info">(${e.iRoll})</span>
+                  ${specialHtml}${watchHtml}`;
+        };
+
+        html += `<tr>
+          <td data-label="Day"><strong>${i}</strong></td>
+          <td data-label="AM">${fmtEnc(am)}</td>
+          <td data-label="PM">${fmtEnc(pm)}</td>
+          <td data-label="Night">${fmtEnc(night)}</td>
+          <td data-label="Weather">
+            <div class="weather-row">
+              <span class="weather-tag">🌡️ Temp: <strong>${currentTemp}</strong></span>
+              <span class="weather-tag">💨 Wind: <strong>${currentWind}</strong></span>
+              <span class="weather-tag">🌧️ Precip: <strong>${currentPrec}</strong></span>
+            </div>
+          </td>
+        </tr>`;
+      }
+
+      html += `</tbody></table>`;
+      document.getElementById('results').innerHTML = html;
+    }
+
+    // Auto-generate on load for demo
+    generateTrip();
+  </script>
+</body>
+</html>

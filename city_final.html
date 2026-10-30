@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D City Generator</title>
+    <style>
+        :root {
+            --bg: #f4f1ea;
+            --card: #ffffff;
+            --text: #2c2c2c;
+            --accent: #2b5797;
+            --border: #d4d0c8;
+            --highlight: #e8f0fe;
+            --npc-bg: #fafafa;
+            --npc-border: #c5c1b7;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        h1 {
+            text-align: center;
+            color: var(--accent);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+        button {
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            margin: 1.5rem auto;
+            padding: 0.8rem 1.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            background-color: var(--accent);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #1e3f6f; }
+        .back-btn {
+            display: block;
+            width: fit-content;
+            margin: 0 auto 1.5rem auto;
+            padding: 0.6rem 1.2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent);
+            background-color: transparent;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+        }
+        .back-btn:hover {
+            background-color: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+	.city-card {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: none;
+        }
+        .city-name {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        .stat-block {
+            background: var(--highlight);
+            padding: 0.75rem;
+            border-radius: 6px;
+            border-left: 4px solid var(--accent);
+        }
+        .stat-label { font-weight: bold; display: block; margin-bottom: 0.25rem; color: #555; }
+        .stat-value { font-size: 1.05rem; }
+        .list { margin: 0; padding-left: 1.2rem; }
+        .list li { margin-bottom: 0.8rem; list-style-type: none; }
+        .pc-type { font-weight: 600; margin-bottom: 0.3rem; color: var(--text); }
+        .align-tag { font-weight: normal; color: #666; font-size: 0.9em; }
+        
+        /* NPC Card Styling */
+        .npc-card {
+            background: var(--npc-bg);
+            border: 1px solid var(--npc-border);
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            margin-top: 0.2rem;
+        }
+        .npc-header {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .npc-name { font-weight: 600; font-size: 1.05rem; }
+        .npc-sex { color: #666; font-size: 0.9em; }
+        .npc-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            font-size: 0.9rem;
+        }
+        .npc-badge {
+            background: #f0f4f8;
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            border: 1px solid #dce3e8;
+            color: #4a5568;
+        }
+        .npc-level { font-weight: 600; color: var(--accent); }
+        footer { text-align: center; margin-top: 2rem; color: #777; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <h1>Random City Generator</h1>
+    <a href="index.html" class="back-btn">← Back to Index</a>
+    <button onclick="generateCity()">Generate New City</button>
+    <div id="cityOutput" class="city-card"></div>
+    <footer>Based on provided reference tables: city_stats.txt, place_name.txt, & NPC1.html logic</footer>
+
+    <script>
+        // --- UTILITY FUNCTIONS ---
+        const roll = (sides) => Math.floor(Math.random() * sides) + 1;
+        const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+        const pick = arr => arr[roll(arr.length)-1];
+        
+        function rollDice(expr) {
+            const m = expr.match(/^(\d+)d(\d+)(?:\+(\d+))?$/);
+            if (!m) return 1;
+            let total = 0;
+            for(let i=0; i<parseInt(m[1]); i++) total += roll(parseInt(m[2]));
+            return total + parseInt(m[3] || 0);
+        }
+
+        // --- ALIGNMENT GENERATOR ---
+        function rollAlignment() {
+            const r = roll(10);
+            if (r <= 2) return "Lawful Good";
+            if (r <= 4) return "Lawful Neutral";
+            if (r <= 6) return "Lawful Evil";
+            if (r === 7) return "True Neutral";
+            if (r === 8) return "Chaotic Good";
+            if (r === 9) return "Chaotic Neutral";
+            return "Chaotic Evil";
+        }
+
+        // --- CITY STATS DATA ---
+        const cityTiers = [
+            {min:1, max:10, size:"Thorp", popMin:10, popMax:80, gp:40, merchants:1, pcDice:"1"},
+            {min:11, max:30, size:"Hamlet", popMin:81, popMax:400, gp:100, merchants:2, pcDice:"1"},
+            {min:31, max:50, size:"Village", popMin:401, popMax:900, gp:200, merchants:3, pcDice:"1"},
+            {min:51, max:70, size:"Small Town", popMin:901, popMax:2000, gp:800, merchants:6, pcDice:"1d2"},
+            {min:71, max:85, size:"Large Town", popMin:2001, popMax:5000, gp:3000, merchants:9, pcDice:"1d2"},
+            {min:86, max:95, size:"Small City", popMin:5001, popMax:12000, gp:15000, merchants:12, pcDice:"1d2+1"},
+            {min:96, max:98, size:"Large City", popMin:12001, popMax:25000, gp:40000, merchants:15, pcDice:"1d3"},
+            {min:99, max:99, size:"Metropolis", popMin:25001, popMax:100000, gp:100000, merchants:"All + 1 Legendary per 25,000 pop", pcDice:"2d2+2"},
+            {min:100, max:100, size:"Planar Metropolis", popMin:100001, popMax:10000000, gp:1000000, merchants:"All + 1 Legendary per 25,000 pop", pcDice:"2d3+3"}
+        ];
+
+        const polStructs = [
+            {min:1, max:8, name:"Autocracy"}, {min:9, max:13, name:"Bureaucracy"}, {min:14, max:19, name:"Confederacy"},
+            {min:20, max:22, name:"Democracy"}, {min:23, max:27, name:"Dictatorship"}, {min:28, max:42, name:"Feudalism"},
+            {min:43, max:44, name:"Gerontocracy"}, {min:45, max:53, name:"Hierarchy"}, {min:54, max:56, name:"Magocracy"},
+            {min:57, max:58, name:"Matriarchy"}, {min:59, max:64, name:"Militocracy"}, {min:65, max:74, name:"Monarchy"},
+            {min:75, max:78, name:"Oligarchy"}, {min:79, max:80, name:"Patriarchy"}, {min:81, max:83, name:"Meritocracy"},
+            {min:84, max:85, name:"Plutocracy"}, {min:86, max:92, name:"Republic"}, {min:93, max:94, name:"Satrapy"},
+            {min:95, max:95, name:"Kleptocracy"}, {min:96, max:100, name:"Thocracy"}
+        ];
+
+        const pcTypes = [
+            "Political", "Nobility", "Religious", "Craft Guild", "Alchemist Guild", 
+            "Enchanters Guild", "Military", "Fighters Guild", "Thieves Guild", "Monk Monastery", 
+            "Bards Guild", "Wizards Guild", "Trade Organization", "Trade Organization", "Adventurer",
+            "Adventurer", "Adventurer", "Adventurer", "Adventurer", "Adventurer"
+        ];
+
+        // --- PLACE NAME GENERATOR ---
+        const descWords = ["Old","Eld","Auld","Ault","New","Young","Big","Great","Gret","Broad","Long","Mickle","Little","Small","Smale","Short","Cold","Cald","Wet","Dry","Droc","Fair","Foul","Ful","Crooked","Crom","Wo","Cam","Holy","Hali","Deep","Hol","Rough","Row","Summer","Winter","High","Steep","Upper","Ard","Low","Nether","Lower","Middle","Near","By","Nigh","At","Atte","Far","Over","Atop","Under","Black","Blake","Blue","Glas","Green","Grey","Hoare","Red","Rad","Rudd","White","Whit","Win","Wen","Yellow","Gold","Gyld","Brown","Brun","Dark","Dunn","Bright","Sher","Shir","Glou","North","South","East","West","Norr","Nor","Sut","Est","Wes","Mid"];
+        const featWords = ["Beck","Bridge","Brook","Burn","Combe","Dale","Dean","Dell","Dingle","Down","Field","Ford","Grove","Heath","Hill","Holme","How","Howe","Hurst","Ley","Mead","Pool","Shaw","Stone","Wood","Cliff","Crag","Ridge","Valley","Spring","Well","Peak","Pike","Fell","Tor","Knoll","Hough","Low","Law","Dun","Berrow","Borough","Pen","Bre","Bryn","Knock","Slieve","Scar","Scaur","Edge","Hole","Pit","Den","Rigg","Slade","Lith","Lyth","Bog","Fen","Marsh","Mire","Slough","Wold","Glade","Leigh","Lee","Rhode","Thwaite","Magh","Lynch","Smeath","Flat","Water","Ea","Ey","Sea","Mer","Mere","Lin","Lynn","Loch","Lake","Pond","Tarn","Avon","Stream","Syke","Keld","Wade","Hythe","Isle","Ness","Shore","Sands","Strand","Bank","Cove","Haven","Port","Bight","Bay","Gulf","Creek","Sound","Strait","Mouth","Skerry","Sgeir","Aber","Inver","Cairn","Carrick","Clach","Cruc","Gruc","Mal","Mel","Bench","Cleeve","Dene","Gill","Hollow","Knock","Moor","Ros","Strath","Thwaite","Wynd"];
+        const habWords = ["Bury","By","Chester","Cester","Ham","Ing","Stead","Thorpe","Ton","Wick","Worth","Town","Fort","Market","Church","Stoke","Wold","Caster","Borough","Hall","Wych","Gate","Wyke","Worthy","Cot","Cote","Booth","Scale","Rath","Ville","Grange","Farm","Mill","Cross","Stow","Minster","Kirk","Eccles","Ty","Din","Den","Tin","Car","Caer","Cashel","Castle","Peel","Tomb","Grave","Shrine","Fane","Lis","Bally","Bal","Tre","Tref","Lan","Gart","Taft","Toft","Bold","Bottle","Bootle","House","Ingham","Ingtun","Wicton","Hamstead","Bourne","Stoke","Chesterton","Kirkby","Thornton","Ashby","Oakley","Barton","Newton","Milton","Sutton","Wilton","Compton","Bradford","Stamford","Oxford","Ashford","Dunbar","Kilmore","Balruddery","Tredegar","Llanfair","Aberystwyth","Dundee","Dunedin"];
+
+        const cityNamePre = ["Aeth","Beor","Cyn","Dun","Ead","God","Her","Leof","Osw","Rad","Stan","Wulf","Alf","Bald","Edg","Hild","Os","Sig","Thur","Win","Grim","Bran","Eld","Fen","Mor","Cuth","Eald","Hroth","Wulfr","Leofr"];
+        const cityNameSuf = ["ric","red","ward","mund","stan","win","hild","gar","bert","ulf","wine","mer","bold","frid","brand","lock","son","thor","wyn","gar","helm","frith","weard","laf","wig","bald","rad","helm","wine"];
+
+        function genPersonName() {
+            return cityNamePre[roll(cityNamePre.length)-1] + cityNameSuf[roll(cityNameSuf.length)-1];
+        }
+
+        function genCityName() {
+            const d30 = roll(30);
+            const merge = () => Math.random() < 0.45;
+            
+            if (d30 >= 1 && d30 <= 3) return `${genPersonName()} ${pick(featWords)}`;
+            if (d30 >= 4 && d30 <= 10) {
+                const hab = pick(habWords).toLowerCase();
+                return merge() ? `${genPersonName()}${hab}` : `${genPersonName()} ${hab}`;
+            }
+            if (d30 >= 11 && d30 <= 19) {
+                const desc = pick(descWords);
+                const hab = pick(habWords).toLowerCase();
+                return merge() ? `${desc}${hab}` : `${desc} ${hab}`;
+            }
+            if (d30 >= 20 && d30 <= 28) {
+                const desc = pick(descWords);
+                const feat = pick(featWords);
+                return merge() ? `${desc}${feat}` : `${desc} ${feat}`;
+            }
+            if (roll(2) === 1) {
+                const pool = roll(3) === 1 ? featWords : (roll(2) === 1 ? habWords : descWords);
+                return pick(pool);
+            } else {
+                const p1 = pick(descWords);
+                const p2 = pick(featWords).toLowerCase();
+                const p3 = pick(habWords).toLowerCase();
+                return Math.random() < 0.5 ? `${p1} ${p2}${p3}` : `${p1} ${p2} ${p3}`;
+            }
+        }
+
+        // --- PROCEDURAL NPC NAME GENERATOR (30 Fronts, 100 Syllables) ---
+        const npcFronts = [
+            "Ael","Ar","Bal","Bre","Cor","Cyn","Dun","Ead","El","Fen","Gar","Gor","Hal","Hild","Ior",
+            "Kal","Kael","Lor","Mal","Mor","Nor","Orl","Ren","Sar","Sil","Tal","Tor","Val","Wyl","Zor"
+        ];
+        const npcSyllables = [
+            "an","ar","ash","ban","bel","bin","bor","brin","cal","cen","cor","dan","del","din","dor",
+            "dwin","eld","en","er","es","eth","fan","fel","fin","gal","gen","gil","gor","gren","hal",
+            "her","hin","hyl","ian","il","in","ir","is","ith","jar","jen","kor","lan","lin","lor",
+            "lum","lyn","mal","man","mir","mon","nel","ner","nor","nul","or","os","ral","ran","ren",
+            "ril","ron","ros","sel","sen","sil","sor","tan","tel","ter","thar","thel","ton","tor",
+            "ul","um","un","ur","val","van","vel","vin","vor","wen","wil","win","wor","yal","yel",
+            "ynn","zar","zen","zol"
+        ];
+
+        function genNPCName() {
+            const nameParts = [pick(npcFronts)];
+            const numExtra = randInt(0, 2);
+            for(let i=0; i<numExtra; i++) nameParts.push(pick(npcSyllables));
+            let name = nameParts.join('');
+            return name.charAt(0).toUpperCase() + name.slice(1);
+        }
+
+        // --- EXPANDED NPC GENERATOR ---
+        const npcSexes = ["Male", "Female"];
+        const npcRaces = [
+             "Human", "High Elf", "Dark Elf", "Wood Elf", "Spring Eladrin", "Summer Eladrin", "Autumn Eladrin", "Winter Eladrin",
+  "Shadokai", "Half Elf", "Hill Dwarf", "Mountain Dwarf", "Duergar", "Forest Gnome", "Rock Gnome", "Deep Gnome",
+  "Stout Halfling", "Lightfoot Halfling", "Githyanki", "Githzerai", "Orc", "Half Orc", "Goblin", "Hobgoblin", "Kobold",
+  "Kenku", "Minotaur", "Tabaxi", "Lionel", "Goliath", "Air Genasi", "Fire Genasi", "Earth Genasi", "Water Genasi",
+  "Aaracokra", "Luxodon", "Teifling", "Aasimar", "Firbolg", "Yuan-Ti", "Shifter", "Changling", "Bugbear", "Haregon",
+  "Fairy", "Red Dragonborn", "White Dragonborn", "Blue Dragonborn", "Green Dragonborn", "Black Dragonborn", "Gold Dragonborn",
+  "Silver Dragonborn", "Copper Dragonborn", "Brass Dragonborn", "Bronze Dragonborn", "Amethyst Dragonborn", "Crystal Dragonborn",
+  "Emerald Dragonborn", "Ruby Dragonborn", "Lizard Folk", "Kender", "Owlkin", "Astral Elf", "Autognome", "Giff", "Hadozee",
+  "Plasmoid", "Thri-Keen", "Human", "Human", "Human", "Human", "Human", "Human", "Human", "Human", "Human", "High Elf", "High Elf",
+  "High Elf", "High Elf", "Drow", "Drow", "Drow", "Drow", "Wood Elf", "Wood Elf", "Wood Elf", "Wood Elf", "Half Elf", "Hill Dwarf", "Mountain Dwarf",
+  "Half Elf", "Hill Dwarf", "Mountain Dwarf", "Forest Gnome", "Rock Gnome", "Forest Gnome", "Rock Gnome", "Stout Halfling", "Lightfoot Halfling",
+  "Stout Halfling", "Lightfoot Halfling"
+        ];
+        const npcClasses = [
+            "Fighter", "Rogue", "Wizard", "Cleric", "Ranger", "Paladin",
+            "Bard", "Barbarian", "Monk", "Druid", "Sorcerer", "Warlock",
+            "Artificer", "Spellcaster", "Spellcaster", "Spellcaster",
+	    "Spellcaster", "Spellcaster", "Spellcaster", "Spellcaster",
+	    "Spellcaster", "Spellcaster", "Warrior", "Warrior", "Warrior",
+	    "Warrior", "Warrior", "Warrior", "Warrior", "Warrior", "Warrior",
+	    "Expert", "Expert", "Expert", "Expert", "Expert", "Expert",
+	    "Expert", "Expert", "Expert", "Expert", "Expert", "Expert",
+	    "Expert", "Expert", "Expert", "Expert", "Expert", "Expert",
+	    "Expert", "Expert", "Expert", "Expert", "Expert", "Expert",
+	    "Expert", "Expert", "Expert", "Expert", "Expert", "Warrior",
+	    "Warrior", "Warrior", "Warrior", "Warrior", "Warrior",
+	    "Warrior", "Warrior", "Warrior", "Warrior", "Warrior",
+	    "Warrior", "Warrior", "Warrior", "Warrior", "Warrior",
+	    "Warrior", "Warrior", "Warrior", "Warrior", "Warrior",
+	    "Spellcaster", "Spellcaster", "Spellcaster", "Spellcaster",
+	    "Spellcaster", "Spellcaster", "Spellcaster", "Spellcaster",
+	    "Spellcaster", "Spellcaster", "Spellcaster", "Spellcaster",
+	    "Spellcaster", "Spellcaster", "Spellcaster", "Spellcaster",
+	    "Spellcaster", "Spellcaster", "Spellcaster"
+        ];
+
+        function generateNPC(powerCenterAlign, cityTier) {
+            const tierIdx = cityTiers.indexOf(cityTier);
+            const minLvl = Math.max(1, Math.floor(tierIdx / 2) + 1);
+            return {
+                name: genNPCName(),
+                sex: pick(npcSexes),
+                race: pick(npcRaces),
+                cls: pick(npcClasses),
+                align: powerCenterAlign || rollAlignment(),
+                level: minLvl + randInt(1, 4)
+            };
+        }
+
+        // --- MAIN GENERATOR ---
+        function generateCity() {
+            const d100 = roll(100);
+            const tier = cityTiers.find(t => d100 >= t.min && d100 <= t.max);
+            const population = randInt(tier.popMin, tier.popMax);
+            const wealth = Math.floor((population / 10) * (tier.gp / 2));
+            const cityAlignment = rollAlignment();
+
+            const govRoll = roll(100);
+            const government = polStructs.find(p => govRoll >= p.min && govRoll <= p.max).name;
+
+            const pcCount = rollDice(tier.pcDice);
+            const powerCenters = [];
+            for(let i=0; i<pcCount; i++) {
+                const type = pcTypes[roll(20) - 1];
+                const align = (i === 0) ? cityAlignment : rollAlignment();
+                const npcData = generateNPC(align, tier);
+                powerCenters.push({ type, align, npc: npcData });
+            }
+
+            const cityName = genCityName();
+            let merchStr = typeof tier.merchants === 'number' ? tier.merchants.toString() : tier.merchants;
+            if(typeof tier.merchants === 'string' && population) {
+                const leg = Math.floor(population / 25000);
+                merchStr += ` (${leg} Legendary)`;
+            }
+
+            const pcHTML = powerCenters.map(pc => `
+                <li>
+                    <div class="pc-type">${pc.type} <span class="align-tag">(${pc.align})</span></div>
+                    <div class="npc-card">
+                        <div class="npc-header">
+                            <span class="npc-name">${pc.npc.name}</span>
+                            <span class="npc-sex">(${pc.npc.sex})</span>
+                        </div>
+                        <div class="npc-details">
+                            <span class="npc-badge">${pc.npc.race}</span>
+                            <span class="npc-badge">${pc.npc.cls}</span>
+                            <span class="npc-badge">${pc.npc.align}</span>
+                            <span class="npc-level">Level ${pc.npc.level}</span>
+                        </div>
+                    </div>
+                </li>
+            `).join('');
+
+            const html = `
+                <div class="city-name">${cityName}</div>
+                <div class="stat-grid">
+                    <div class="stat-block"><span class="stat-label">Settlement Type</span><span class="stat-value">${tier.size}</span></div>
+                    <div class="stat-block"><span class="stat-label">Population</span><span class="stat-value">${population.toLocaleString()}</span></div>
+                    <div class="stat-block"><span class="stat-label">GP Limit (Transaction)</span><span class="stat-value">${tier.gp.toLocaleString()} gp</span></div>
+                    <div class="stat-block"><span class="stat-label">Settlement Wealth</span><span class="stat-value">${wealth.toLocaleString()} gp</span></div>
+                    <div class="stat-block"><span class="stat-label">Available Merchants</span><span class="stat-value">${merchStr}</span></div>
+                    <div class="stat-block"><span class="stat-label">City Alignment</span><span class="stat-value" style="color:#d9534f; font-weight:bold;">${cityAlignment}</span></div>
+                    <div class="stat-block"><span class="stat-label">Political Structure</span><span class="stat-value">${government}</span></div>
+                    <div class="stat-block" style="grid-column: 1 / -1;">
+                        <span class="stat-label">Power Centers (${pcCount})</span>
+                        <span class="stat-value"><ul class="list">${pcHTML}</ul></span>
+                    </div>
+                </div>
+            `;
+            const out = document.getElementById('cityOutput');
+            out.innerHTML = html;
+            out.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

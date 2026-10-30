@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Manor Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f1ea;
+            --card-bg: #ffffff;
+            --text-color: #2c3e50;
+            --accent-color: #8b4513;
+            --accent-light: #d2b48c;
+            --border-color: #dcd5c7;
+            --profit-pos: #27ae60;
+            --profit-neg: #c0392b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1, h2, h3 { color: var(--accent-color); }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        details { margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
+        summary { font-weight: bold; cursor: pointer; padding: 5px 0; color: var(--accent-color); font-size: 1.1em;}
+        .input-group { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
+        label { font-size: 0.95em; }
+        
+        input[type="number"], select {
+            width: 100px; padding: 5px; border: 1px solid var(--border-color);
+            border-radius: 4px; text-align: right; background: white;
+        }
+        select { text-align: left; cursor: pointer; }
+
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 26px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent-color); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        .controls {
+            background: var(--accent-color); color: white; padding: 20px; border-radius: 8px;
+            display: flex; gap: 20px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .controls label { color: white; font-weight: bold; }
+        .controls input { background: white; color: black; }
+
+        button, .btn-back {
+            background: #f39c12; color: white; border: none; padding: 10px 20px;
+            border-radius: 5px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: background 0.2s;
+            text-decoration: none; display: inline-block;
+        }
+        button:hover { background: #e67e22; }
+        
+        /* Back Button Styling */
+        .btn-back {
+            background: #7f8c8d;
+        }
+        .btn-back:hover {
+            background: #636e72;
+        }
+
+        .btn-pdf { background: #2c3e50; width: 100%; margin-top: 10px; }
+        .btn-pdf:hover { background: #1a252f; }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: #fafafa; padding: 10px; border-radius: 5px; border-left: 4px solid var(--accent-color); }
+        .stat-box strong { display: block; font-size: 0.9em; color: #7f8c8d; }
+        .stat-box span { font-size: 1.3em; font-weight: bold; color: var(--text-color); }
+        .pos { color: var(--profit-pos) !important; }
+        .neg { color: var(--profit-neg) !important; }
+
+        .mine-slot { display: flex; align-items: center; gap: 10px; margin: 8px 0; padding: 5px; background: #fafafa; border-radius: 4px; }
+        .mine-slot span { min-width: 60px; font-size: 0.9em; font-weight: bold; color: var(--accent-color);}
+        .mine-slot select { width: auto; flex: 1; }
+
+        @media (max-width: 768px) { .grid, .stat-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏰 Fantasy Manor Calculator</h1>
+    <p>Enter your manor's values for the year, then calculate to see how your estate fares!</p>
+
+    <div class="controls">
+        <!-- NEW BACK BUTTON -->
+        <a href="index.html" class="btn-back">⬅️ Back</a>
+        
+        <div>
+            <label>Current Population:</label>
+            <input type="number" id="pop" value="50" min="0">
+        </div>
+        <button onclick="calculateYear()">📜 Calculate Year</button>
+    </div>
+
+    <div class="grid">
+        <!-- LEFT COLUMN -->
+        <div>
+            <div class="card">
+                <h2>Land & Assets</h2>
+                <details open>
+                    <summary>Acreage</summary>
+                    <div class="input-group"><label>Arable</label><input type="number" id="acre_arable" value="6" min="0"></div>
+                    <div class="input-group"><label>Fallow (1/3 of Arable)</label><input type="number" id="acre_fallow" value="2" readonly style="background-color: #eee; cursor: not-allowed;"></div>
+                    <div class="input-group"><label>Cultivated (Max 2/3 of Arable)</label><input type="number" id="acre_cultivated" value="4" min="0"></div>
+                    <div class="input-group"><label>Pasture (Remainder of 2/3)</label><input type="number" id="acre_pasture" value="0" readonly style="background-color: #eee; cursor: not-allowed;"></div>
+                    <div class="input-group"><label>Waste</label><input type="number" id="acre_waste" value="0" min="0"></div>
+                </details>
+                
+                <details>
+                    <summary>Mining & Quarrying</summary>
+                    <div class="input-group"><label>Number of Mines/Quarries</label><input type="number" id="mine_count" value="0" min="0"></div>
+                    <div id="mine_slots" style="margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 10px;"></div>
+                </details>
+
+                <details>
+                    <summary>Income Sources (Quantity or Acres)</summary>
+                    <div class="input-group"><label>Beehive</label><input type="number" id="inc_beehive" value="0" min="0"></div>
+                    <div class="input-group"><label>Carpenter</label><input type="number" id="inc_carpenter" value="0" min="0"></div>
+                    <div class="input-group"><label>Dovecote</label><input type="number" id="inc_dovecote" value="0" min="0"></div>
+                    <div class="input-group"><label>Forest (Acres)</label><input type="number" id="inc_forest" value="0" min="0"></div>
+                    <div class="input-group"><label>Livestock (Acres)</label><input type="number" id="inc_livestock" value="0" min="0"></div>
+                    <div class="input-group"><label>Mill</label><input type="number" id="inc_mill" value="0" min="0"></div>
+                    <div class="input-group"><label>Millpond</label><input type="number" id="inc_millpond" value="0" min="0"></div>
+                    <div class="input-group"><label>Pound, Animal (Auto)</label><input type="number" id="inc_pound" value="0" readonly style="background-color: #eee; cursor: not-allowed;"></div>
+                    <div class="input-group"><label>Oven, Communal</label><input type="number" id="inc_oven" value="0" min="0"></div>
+                    <div class="input-group"><label>Smith</label><input type="number" id="inc_smith" value="0" min="0"></div>
+                    <div class="input-group"><label>Staples (Acres)</label><input type="number" id="inc_staples" value="0" min="0"></div>
+                </details>
+                <details>
+                    <summary>Crops & Flora (Acres)</summary>
+                    <div class="input-group"><label>Cotton</label><input type="number" id="inc_cotton" value="0" min="0"></div>
+                    <div class="input-group"><label>Flax</label><input type="number" id="inc_flax" value="0" min="0"></div>
+                    <div class="input-group"><label>Hemp</label><input type="number" id="inc_hemp" value="0" min="0"></div>
+                    <div class="input-group"><label>Lumber</label><input type="number" id="inc_lumber" value="0" min="0"></div>
+                    <div class="input-group"><label>Olive Grove</label><input type="number" id="inc_olive" value="0" min="0"></div>
+                    <div class="input-group"><label>Orchard</label><input type="number" id="inc_orchard" value="0" min="0"></div>
+                    <div class="input-group"><label>Wool</label><input type="number" id="inc_wool" value="0" min="0"></div>
+                    <div class="input-group"><label>Vineyard</label><input type="number" id="inc_vineyard" value="0" min="0"></div>
+                </details>
+            </div>
+
+            <div class="card" style="margin-top:20px;">
+                <h2>Rights & Population</h2>
+                
+                <div class="input-group">
+                    <label>Max Population (Auto: Staples x 2)</label>
+                    <input type="number" id="max_pop" value="0" readonly style="background-color: #eee; cursor: not-allowed;">
+                </div>
+                
+                <hr>
+                <p><em>Per Adult Taxes/Fees (GP)</em></p>
+                <div class="input-group"><label>Fees</label><input type="number" id="right_fees" value="0" step="0.01"></div>
+                <div class="input-group"><label>Justice</label><input type="number" id="right_justice" value="0" step="0.01"></div>
+                <div class="input-group"><label>Rent</label><input type="number" id="right_rent" value="0" step="0.01"></div>
+                <div class="input-group"><label>Tax</label><input type="number" id="right_tax" value="0" step="0.01"></div>
+                <div class="input-group"><label>Toll</label><input type="number" id="right_toll" value="0" step="0.01"></div>
+                <hr>
+                <p><em>Grants (Scale with Pop)</em></p>
+                <div class="input-group">
+                    <label>Weekly Market (1gp/pop)</label>
+                    <label class="toggle-switch"><input type="checkbox" id="right_market_toggle"><span class="slider"></span></label>
+                </div>
+                <div class="input-group">
+                    <label>Biannual Fair (4gp/pop)</label>
+                    <label class="toggle-switch"><input type="checkbox" id="right_fair_toggle"><span class="slider"></span></label>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+            <div class="card">
+                <h2>Costs & Upkeep</h2>
+                <details open>
+                    <summary>Variable Costs (% of Income)</summary>
+                    <div class="input-group"><label>Alms (%)</label><input type="number" id="cost_alms" value="2" step="0.1"></div>
+                    <div class="input-group"><label>Assarting (Flat GP)</label><input type="number" id="cost_assarting" value="0" step="0.01"></div>
+                    <div class="input-group"><label>Scutage (%)</label><input type="number" id="cost_scutage" value="10" step="0.1"></div>
+                    <div class="input-group"><label>Tax (%)</label><input type="number" id="cost_tax" value="20" step="0.1"></div>
+                </details>
+                <details>
+                    <summary>Staff</summary>
+                    <div class="input-group"><label>Chamberlain (Flat GP)</label><input type="number" id="staff_chamberlain" value="300" step="0.01"></div>
+                    <div class="input-group"><label>Household (%)</label><input type="number" id="staff_household" value="5" step="0.1"></div>
+                    <div class="input-group"><label>Laborers (%)</label><input type="number" id="staff_laborers" value="4" step="0.1"></div>
+                    <div class="input-group"><label>Managerial (%)</label><input type="number" id="staff_managerial" value="3" step="0.1"></div>
+                    <div class="input-group">
+                        <label>Steward (360gp + 10%/640ac)</label>
+                        <label class="toggle-switch"><input type="checkbox" id="staff_steward_toggle" checked><span class="slider"></span></label>
+                    </div>
+                    <hr>
+                    <p><em>Personal Staff (Count)</em></p>
+                    <div class="input-group"><label>Barber (300gp)</label><input type="number" id="staff_barber" value="0" min="0"></div>
+                    <div class="input-group"><label>Doctor (300gp)</label><input type="number" id="staff_doctor" value="0" min="0"></div>
+                    <div class="input-group"><label>Falconer (300gp)</label><input type="number" id="staff_falconer" value="0" min="0"></div>
+                    <div class="input-group"><label>Huntsman (300gp)</label><input type="number" id="staff_huntsman" value="0" min="0"></div>
+                    <div class="input-group"><label>Wardrobe (300gp)</label><input type="number" id="staff_wardrobe" value="0" min="0"></div>
+                    <div class="input-group"><label>Tailor (200gp)</label><input type="number" id="staff_tailor" value="0" min="0"></div>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="card" style="margin-top: 30px; display: none;" id="resultsCard">
+        <h2>Yearly Summary</h2>
+        <div class="stat-grid">
+            <div class="stat-box"><strong>Effective Population</strong><span id="resPop">0</span></div>
+            <div class="stat-box"><strong>Random Event</strong><span id="resEvent" style="font-size: 1em;">None</span></div>
+            <div class="stat-box"><strong>Gross Income</strong><span id="resIncome">0.00 gp</span></div>
+            <div class="stat-box"><strong>Total Costs</strong><span id="resCosts">0.00 gp</span></div>
+            <div class="stat-box"><strong>Net Profit</strong><span id="resProfit" class="pos">0.00 gp</span></div>
+            <div class="stat-box"><strong>Maint. & Repair Roll</strong><span id="resMaint">0%</span></div>
+        </div>
+        
+        <button class="btn-pdf" onclick="exportPDF()">📄 Download Year Report (PDF)</button>
+    </div>
+</div>
+
+<script>
+    // =========================================================================
+    // CONFIGURATION DICTIONARIES
+    // =========================================================================
+    const INCOME_RATES = {
+        inc_beehive: 1, inc_carpenter: 11.5, inc_dovecote: 5, inc_forest: 4, inc_livestock: 17, 
+        inc_mill: 575, inc_millpond: 29, inc_oven: 134, inc_smith: 11.5, inc_staples: 7.2,
+        inc_cotton: 85, inc_flax: 75, inc_hemp: 75, inc_lumber: 400, inc_olive: 300, 
+        inc_orchard: 10, inc_wool: 5.5, inc_vineyard: 170
+    };
+
+   const MINE_TYPES = ["Iron", "Lead", "Coal", "Copper", "Salt", "Tin", "Sandstone", "Limestone", "Granite", "Slate", "Marble", "Common Gems", "Quality Gems", "High Quality Gems", "Silver", "Gold"];
+    const YIELD_TYPES = ["Single", "Double", "Triple"];
+    const MINE_RATES = { "Iron": 2000, "Lead": 2000, "Coal": 2000, "Copper": 2000, "Salt": 3333, "Tin": 3333, "Sandstone": 2000, "Limestone": 2666, "Granite": 3333, "Slate": 4000, "Marble": 4666, "Common Gems": 4250, "Quality Gems": 13500, "High Quality Gems": 43500, "Silver": 5500, "Gold": 16500 };
+    const YIELD_MULTIPLIERS = { "Single": 1, "Double": 2, "Triple": 3 };
+
+    const EVENTS = [
+        { name: "Bumper Harvest", chance: 0.15, effect: (s) => { s.incomeMod += 0.20; } },
+        { name: "Harsh Winter", chance: 0.15, effect: (s) => { s.incomeMod -= 0.15; s.costMod += 0.10; } },
+        { name: "Bandit Raid", chance: 0.10, effect: (s) => { s.incomeMod -= 0.25; } },
+        { name: "Plague Outbreak", chance: 0.05, effect: (s) => { s.incomeMod -= 0.20; } },
+        { name: "Royal Visit", chance: 0.10, effect: (s) => { s.costMod += 0.30; } }, 
+        { name: "Trade Boom", chance: 0.15, effect: (s) => { s.incomeMod += 0.15; } },
+        { name: "Peaceful Year", chance: 0.30, effect: (s) => {} }
+    ];
+
+    function getVal(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+    // =========================================================================
+    // UI & AUTOMATIC MATH
+    // =========================================================================
+    function updateAcreageDisplay() {
+        let arable = getVal('acre_arable');
+        let cultivated = getVal('acre_cultivated');
+        let waste = getVal('acre_waste');
+        
+        let fallow = Math.round(arable / 3);
+        let maxCultivated = arable - fallow;
+        
+        if (cultivated > maxCultivated) { cultivated = maxCultivated; document.getElementById('acre_cultivated').value = cultivated; }
+        if (cultivated < 0) { cultivated = 0; document.getElementById('acre_cultivated').value = 0; }
+        
+        let pasture = maxCultivated - cultivated;
+        let poundIncome = (arable + waste) * 1; 
+        
+        document.getElementById('acre_fallow').value = Math.round(fallow);
+        document.getElementById('acre_pasture').value = Math.round(pasture);
+        document.getElementById('inc_pound').value = Math.round(poundIncome);
+    }
+
+    function updateMaxPop() {
+        let staples = getVal('inc_staples');
+        let maxPop = staples * 2;
+        document.getElementById('max_pop').value = maxPop;
+    }
+
+    function updateMineSlots() {
+        let count = getVal('mine_count');
+        let container = document.getElementById('mine_slots');
+        container.innerHTML = '';
+        for (let i = 0; i < count; i++) {
+            let slotDiv = document.createElement('div');
+            slotDiv.className = 'mine-slot';
+            let labelSpan = document.createElement('span');
+            labelSpan.textContent = `Mine #${i + 1}:`;
+            slotDiv.appendChild(labelSpan);
+            let typeSelect = document.createElement('select');
+            typeSelect.id = `mine_type_${i}`;
+            MINE_TYPES.forEach(type => { let opt = document.createElement('option'); opt.value = type; opt.textContent = type; typeSelect.appendChild(opt); });
+            slotDiv.appendChild(typeSelect);
+            let yieldSelect = document.createElement('select');
+            yieldSelect.id = `mine_yield_${i}`;
+            YIELD_TYPES.forEach(y => { let opt = document.createElement('option'); opt.value = y; opt.textContent = y; yieldSelect.appendChild(opt); });
+            slotDiv.appendChild(yieldSelect);
+            container.appendChild(slotDiv);
+        }
+    }
+
+    // Event Listeners
+    document.getElementById('acre_arable').addEventListener('input', updateAcreageDisplay);
+    document.getElementById('acre_cultivated').addEventListener('input', updateAcreageDisplay);
+    document.getElementById('acre_waste').addEventListener('input', updateAcreageDisplay); 
+    document.getElementById('inc_staples').addEventListener('input', updateMaxPop);
+    document.getElementById('mine_count').addEventListener('input', updateMineSlots);
+    
+    // Run on load
+    updateAcreageDisplay();
+    updateMaxPop();
+    updateMineSlots();
+
+    // =========================================================================
+    // CALCULATION ENGINE
+    // =========================================================================
+    function calculateYear() {
+        updateAcreageDisplay();
+        updateMaxPop();
+        
+        let population = getVal('pop');
+        const maxPop = getVal('max_pop');
+
+        // Cap population to the maximum allowed by Staples
+        let effectivePop = Math.min(population, maxPop);
+
+        // 1. Calculate Income
+        let perAdultIncome = getVal('right_fees') + getVal('right_justice') + getVal('right_rent') + getVal('right_tax') + getVal('right_toll');
+        let marketIncome = document.getElementById('right_market_toggle').checked ? (effectivePop * 1) : 0;
+        let fairIncome = document.getElementById('right_fair_toggle').checked ? (effectivePop * 4) : 0;
+        let rightsIncome = (effectivePop * perAdultIncome) + marketIncome + fairIncome;
+        
+        let baseIncome = 0;
+        const incomeFields = ['inc_beehive', 'inc_carpenter', 'inc_dovecote', 'inc_forest', 'inc_livestock', 'inc_mill', 'inc_millpond', 'inc_oven', 'inc_smith', 'inc_staples', 'inc_cotton', 'inc_flax', 'inc_hemp', 'inc_lumber', 'inc_olive', 'inc_orchard', 'inc_wool', 'inc_vineyard'];
+        incomeFields.forEach(id => { baseIncome += getVal(id) * (INCOME_RATES[id] || 1); });
+        baseIncome += getVal('inc_pound'); 
+
+        let mineCount = getVal('mine_count');
+        for (let i = 0; i < mineCount; i++) {
+            let typeEl = document.getElementById(`mine_type_${i}`);
+            let yieldEl = document.getElementById(`mine_yield_${i}`);
+            if (typeEl && yieldEl) baseIncome += (MINE_RATES[typeEl.value] || 0) * (YIELD_MULTIPLIERS[yieldEl.value] || 1);
+        }
+        
+        let totalIncome = baseIncome + rightsIncome;
+
+        // 2. Calculate Fixed Costs
+        let fixedCosts = getVal('cost_assarting') + getVal('staff_chamberlain') + getStewardCost() +
+                         (getVal('staff_barber') * 300) + (getVal('staff_doctor') * 300) + (getVal('staff_falconer') * 300) + 
+                         (getVal('staff_huntsman') * 300) + (getVal('staff_wardrobe') * 300) + (getVal('staff_tailor') * 200);
+
+        // 3. Roll for Maintenance & Repair
+        let maintRepairRate = getMaintRepairRate();
+
+        // 4. Calculate Percentage Costs
+        let pctCosts = (getVal('cost_alms') + getMaintConsumptionRate() + getVal('cost_scutage') + 
+                        getVal('cost_tax') + getVal('staff_household') + getVal('staff_laborers') + 
+                        getVal('staff_managerial') + maintRepairRate) / 100;
+        let totalCosts = fixedCosts + (totalIncome * pctCosts);
+
+        // 5. Roll for General Random Events
+        let roll = Math.random();
+        let cumulativeChance = 0;
+        let triggeredEvent = { name: "Normal Year", effect: () => {} };
+        for (let evt of EVENTS) {
+            cumulativeChance += evt.chance;
+            if (roll <= cumulativeChance) { triggeredEvent = evt; break; }
+        }
+
+        let state = { incomeMod: 0, costMod: 0 };
+        triggeredEvent.effect(state);
+
+        let finalIncome = totalIncome * (1 + state.incomeMod);
+        let finalCosts = totalCosts * (1 + state.costMod);
+        let profit = finalIncome - finalCosts;
+
+        // Render Results
+        document.getElementById('resultsCard').style.display = 'block';
+        document.getElementById('resPop').textContent = effectivePop;
+        document.getElementById('resEvent').textContent = triggeredEvent.name;
+        document.getElementById('resIncome').textContent = finalIncome.toFixed(2) + ' gp';
+        document.getElementById('resCosts').textContent = finalCosts.toFixed(2) + ' gp';
+        
+        let profitEl = document.getElementById('resProfit');
+        profitEl.textContent = profit.toFixed(2) + ' gp';
+        profitEl.className = profit >= 0 ? 'pos' : 'neg';
+
+        document.getElementById('resMaint').textContent = maintRepairRate + '%';
+
+        // Save data for PDF
+        window.currentCalc = {
+            pop: effectivePop,
+            income: finalIncome,
+            costs: finalCosts,
+            profit: profit,
+            maintRepair: maintRepairRate,
+            event: triggeredEvent.name
+        };
+
+        document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // =========================================================================
+    // HELPER CALCULATIONS
+    // =========================================================================
+    function getTotalAcres() { return getVal('acre_arable') + getVal('acre_pasture') + getVal('acre_waste'); }
+    function getMaintConsumptionRate() {
+        let totalAcres = getTotalAcres();
+        if (totalAcres <= 6399) return 5; if (totalAcres <= 31999) return 15; if (totalAcres <= 63999) return 25; return 30; 
+    }
+    function getMaintRepairRate() {
+        let roll = Math.floor(Math.random() * 20) + 1; 
+        if (roll <= 10) return 1; if (roll <= 12) return 2; if (roll <= 14) return 3; if (roll <= 16) return 4; if (roll <= 18) return 5; if (roll === 19) return 8; return 20;
+    }
+    function getStewardCost() {
+        if (!document.getElementById('staff_steward_toggle').checked) return 0;
+        let totalAcres = getTotalAcres(); if (totalAcres <= 0) totalAcres = 1; 
+        return 360 * (1 + (Math.ceil(totalAcres / 640) * 0.10));
+    }
+
+    // =========================================================================
+    // PDF EXPORT
+    // =========================================================================
+    function exportPDF() {
+        if (!window.currentCalc) return alert("Calculate a year first!");
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const data = window.currentCalc;
+
+        doc.setFontSize(20);
+        doc.setTextColor(139, 69, 19);
+        doc.text("Manor Yearly Report", 105, 20, { align: 'center' });
+        
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 20, 35);
+
+        doc.autoTable({
+            startY: 50,
+            head: [['Metric', 'Value']],
+            body: [
+                ['Effective Population', data.pop],
+                ['Gross Income', data.income.toFixed(2) + ' gp'],
+                ['Total Costs', data.costs.toFixed(2) + ' gp'],
+                ['Net Profit', data.profit.toFixed(2) + ' gp'],
+                ['Maint. & Repair Roll', data.maintRepair + '%'],
+                ['Random Event', data.event]
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [139, 69, 19] },
+            styles: { fontSize: 11 }
+        });
+
+        doc.save(`Manor_Yearly_Report.pdf`);
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D&D Downtime Activities</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card: #1e1e1e;
+      --border: #333;
+      --text: #e0e0e0;
+      --accent: #bb86fc;
+      --gold: #ffd700;
+      --success: #03dac6;
+      --danger: #cf6679;
+      --input-bg: #2c2c2c;
+      --hover: #2a2a2a;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 2rem;
+      line-height: 1.5;
+    }
+    .container { max-width: 1050px; margin: 0 auto; }
+    h1 { text-align: center; color: var(--gold); margin-bottom: 0.5rem; font-size: 1.8rem; }
+    
+    .index-controls { text-align: center; margin-bottom: 1.5rem; }
+    .btn-index {
+      background: #2c2c2c;
+      color: var(--gold);
+      border: 1px solid var(--border);
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-index:hover { background: var(--hover); border-color: var(--gold); }
+
+    .activity-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .activity-panel[open] { box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+    summary {
+      padding: 1rem 1.5rem;
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--gold);
+      background: #252525;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    summary:hover { background: var(--hover); }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: '+'; font-size: 1.4rem; font-weight: 400; transition: transform 0.2s; }
+    .activity-panel[open] summary::after { content: '−'; }
+    
+    .panel-content { padding: 1.5rem; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .input-group label {
+      display: block;
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 0.3rem;
+    }
+    .input-group input, .input-group select {
+      width: 100%;
+      padding: 0.6rem;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: white;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    .btn-calc {
+      width: 100%;
+      padding: 0.8rem;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-bottom: 1.5rem;
+    }
+    .btn-calc:hover { opacity: 0.85; }
+    
+    .ref-chart {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #1a1a1a;
+      border-radius: 8px;
+      border: 1px dashed var(--border);
+    }
+    .ref-chart h3 { margin: 0 0 0.5rem; color: #aaa; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .ref-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .ref-table td { padding: 0.4rem 0.5rem; border-bottom: 1px solid #222; }
+    .ref-table td:first-child { color: var(--gold); font-weight: 600; width: 160px; }
+    .ref-table tr:last-child td { border-bottom: none; }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      background: var(--card);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+    .results-table th, .results-table td {
+      padding: 0.65rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .results-table th { background: #252525; color: var(--gold); font-weight: 600; }
+    .profit { color: var(--success); }
+    .loss { color: var(--danger); }
+    .results-table select {
+      width: 60px; padding: 0.3rem; background: var(--input-bg); border: 1px solid var(--border); color: white; border-radius: 4px; text-align: center;
+    }
+    
+    .summary-box {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 1.5rem;
+      background: #1a1a1a;
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+    .summary-box h3 { margin: 0 0 0.3rem; color: #aaa; font-weight: 500; font-size: 0.9rem; }
+    .summary-box span { font-size: 1.2rem; font-weight: bold; }
+    
+    .comp-log { 
+      margin-top: 1.5rem; 
+      background: #1a1a1a; 
+      padding: 1rem; 
+      border-radius: 8px; 
+      border: 1px solid var(--border); 
+    }
+    .comp-log h3 { margin: 0 0 0.5rem; color: #aaa; font-size: 0.9rem; }
+    .comp-log ul { margin: 0; padding-left: 1.2rem; color: #ccc; }
+    .comp-log li { margin-bottom: 0.4rem; line-height: 1.4; }
+    
+    .note { margin-top: 1rem; font-size: 0.85rem; color: #888; text-align: center; }
+    
+    @media (max-width: 750px) {
+      .summary-box { grid-template-columns: 1fr; }
+      .results-table, thead, tbody, th, td, tr { display: block; }
+      th { text-align: left; }
+      td { border-bottom: 1px solid var(--border); text-align: right; }
+      tr { margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎲 D&D Downtime Activities</h1>
+    <div class="index-controls">
+      <a href="index.html" class="btn-index">📖 Return to Index</a>
+    </div>
+
+    <!-- 1. RUNNING A BUSINESS -->
+    <details class="activity-panel" open>
+      <summary>💰 Running a Business</summary>
+      <div class="panel-content">
+        <div class="form-grid">
+          <div class="input-group"><label>Months</label><input type="number" id="months" value="6" min="1"></div>
+          <div class="input-group"><label>Roll Mod (d100 ±)</label><input type="number" id="modifier" value="0"></div>
+          <div class="input-group"><label>Upkeep (gp)</label><input type="number" id="upkeep" value="10" min="0" step="0.01"></div>
+          <div class="input-group"><label>Days/Month</label><input type="number" id="days" value="30" min="1"></div>
+          <div class="input-group"><label>Profit Mult</label><input type="number" id="profitMult" value="1" min="0.1" step="0.1"></div>
+        </div>
+        <button class="btn-calc" onclick="calculateBusiness()">Calculate</button>
+        <div id="businessOutput"></div>
+        <details class="ref-chart"><summary style="background:transparent;padding:0.5rem 0;font-size:0.9rem;">📖 d100 Business Chart</summary>
+          <table class="ref-table"><tr><td>01–20</td><td>Pay 1.5× maintenance/day</td></tr><tr><td>21–30</td><td>Pay 1.0× maintenance/day</td></tr><tr><td>31–40</td><td>Pay 0.5× maintenance/day</td></tr><tr><td>41–60</td><td>Business covers maintenance</td></tr><tr><td>61–80</td><td>1d6×5 gp profit</td></tr><tr><td>81–90</td><td>2d8×5 gp profit</td></tr><tr><td>91+</td><td>3d10×5 gp profit</td></tr></table>
+        </details>
+      </div>
+    </details>
+
+    <!-- 2. CAROUSING & SOCIALIZING -->
+    <details class="activity-panel">
+      <summary>🍻 Carousing & Socializing</summary>
+      <div class="panel-content">
+        <div class="form-grid">
+          <div class="input-group"><label>Class</label><select id="carousingClass"><option value="lower">Lower (10gp)</option><option value="middle" selected>Middle (50gp)</option><option value="upper">Upper (250gp)</option></select></div>
+          <div class="input-group"><label>Persuasion Bonus</label><input type="number" id="carousingBonus" value="0"></div>
+          <div class="input-group"><label>Weeks</label><input type="number" id="carousingWeeks" value="4" min="1"></div>
+        </div>
+        <button class="btn-calc" onclick="rollCarousing()">Roll Carousing</button>
+        <div id="carousingOutput"></div>
+      </div>
+    </details>
+
+    <!-- 3. WORK & LABOR -->
+    <details class="activity-panel">
+      <summary>🔨 Work & Labor</summary>
+      <div class="panel-content">
+        <div class="form-grid">
+          <div class="input-group"><label>Skill Modifier</label><input type="number" id="workModifier" value="0"></div>
+          <div class="input-group"><label>Weeks</label><input type="number" id="workWeeks" value="4" min="1"></div>
+        </div>
+        <button class="btn-calc" onclick="calculateWork()">Calculate Work</button>
+        <div id="workOutput"></div>
+      </div>
+    </details>
+
+    <!-- 4. CRIME & HEISTS -->
+    <details class="activity-panel">
+      <summary>🕵️ Crime & Heists</summary>
+      <div class="panel-content">
+        <div class="form-grid">
+          <div class="input-group"><label>Weeks</label><input type="number" id="crimeWeeks" value="4" min="1"></div>
+        </div>
+        <button class="btn-calc" onclick="calculateCrime()">Track Crime</button>
+        <div id="crimeOutput"></div>
+        
+        <details class="ref-chart">
+          <summary style="background:transparent;padding:0.5rem 0;font-size:0.9rem;">📖 DM Reference: Crime Rules</summary>
+          <table class="ref-table">
+            <tr><td>Allowed Checks</td><td>Stealth, Thieves' Tools, Perception, Deception</td></tr>
+            <tr><td>DC 10</td><td>50 gp payout</td></tr>
+            <tr><td>DC 15</td><td>100 gp payout</td></tr>
+            <tr><td>DC 20</td><td>200 gp payout</td></tr>
+            <tr><td>DC 25</td><td>1000 gp payout</td></tr>
+          </table>
+          <p style="margin:0.5rem 0 0;font-size:0.85rem;color:#aaa;">
+            <strong>Success Tiers:</strong><br>
+            • 0 successes = Fine equal to crime value + 1 week jail (or 25 gp fine)<br>
+        			• 1 success = Crime fails, but character escapes cleanly<br>
+        			• 2 successes = Partial success: half payout<br>
+        			• 3 successes = Full payout of the loot<br>
+            <em>*1 in 10 chance of complication per week.</em>
+          </p>
+        </details>
+      </div>
+    </details>
+
+    <!-- 5. GAMBLING (UPDATED) -->
+    <details class="activity-panel">
+      <summary>🎲 Gambling</summary>
+      <div class="panel-content">
+        <div class="form-grid">
+          <div class="input-group"><label>Weeks</label><input type="number" id="gamblingWeeks" value="4" min="1"></div>
+          <div class="input-group"><label>Initial Bet (gp)</label><input type="number" id="gamblingBet" value="10" min="10"></div>
+        </div>
+        <button class="btn-calc" onclick="calculateGambling()">Track Gambling</button>
+        <div id="gamblingOutput"></div>
+        
+        <details class="ref-chart">
+          <summary style="background:transparent;padding:0.5rem 0;font-size:0.9rem;">📖 DM Reference: Gambling</summary>
+          <table class="ref-table">
+            <tr><td>Allowed Checks</td><td>Insight, Deception, Intimidation, Gaming Set</td></tr>
+            <tr><td>DC Mechanic</td><td>3 checks per week: DC = 2d10 + 5</td></tr>
+          </table>
+          <p style="margin:0.5rem 0 0;font-size:0.85rem;color:#aaa;">
+            <strong>Success Tiers:</strong><br>
+            • 0 successes = Lose bet + debt equal to bet<br>
+            • 1 success = Lose half stake<br>
+            • 2 successes = Gain half bet + stake back<br>
+            • 3 successes = Double your money<br>
+            <em>*1 in 10 chance of complication per week. Minimum bet: 10 gp.</em>
+          </p>
+        </details>
+      </div>
+    </details>
+
+    <!-- 6. ARENA FIGHTING (UPDATED) -->
+    <details class="activity-panel">
+      <summary>⚔️ Arena Fighting</summary>
+      <div class="panel-content">
+        <div class="form-grid">
+          <div class="input-group"><label>Weeks</label><input type="number" id="arenaWeeks" value="4" min="1"></div>
+          <div class="input-group"><label>Character HD</label><input type="number" id="arenaHD" value="1" min="1"></div>
+        </div>
+        <button class="btn-calc" onclick="calculateArena()">Track Arena</button>
+        <div id="arenaOutput"></div>
+        
+        <details class="ref-chart">
+          <summary style="background:transparent;padding:0.5rem 0;font-size:0.9rem;">📖 DM Reference: Arena Fighting</summary>
+          <table class="ref-table">
+            <tr><td>Allowed Checks</td><td>Athletics, Acrobatics, Weapon Skill, Con (+1 HD bonus)</td></tr>
+            <tr><td>DC Mechanic</td><td>3 checks per week: DC = 2d10 + 5</td></tr>
+          </table>
+          <p style="margin:0.5rem 0 0;font-size:0.85rem;color:#aaa;">
+            <strong>Success Tiers:</strong><br>
+            • 0 successes = Lose fights, earn nothing<br>
+            • 1 success = Win 50 gp<br>
+            • 2 successes = Win 100 gp<br>
+            • 3 successes = Win 200 gp<br>
+            <em>*1 in 10 chance of complication per week.</em>
+          </p>
+        </details>
+      </div>
+    </details>
+
+    <p class="note">💡 Tip: Click headers to expand/collapse. All rolls generate fresh on click.</p>
+  </div>
+
+  <script>
+    function rollDie(sides) { return Math.floor(Math.random() * sides) + 1; }
+    function collapseAll() {
+      document.querySelectorAll('.activity-panel').forEach(p => p.open = false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function calculateBusiness() {
+      const m = parseInt(document.getElementById('months').value)||1, mod = parseInt(document.getElementById('modifier').value)||0;
+      const up = parseFloat(document.getElementById('upkeep').value)||0, days = parseInt(document.getElementById('days').value)||30;
+      const mult = parseFloat(document.getElementById('profitMult').value)||1;
+      let html = `<table class="results-table"><tr><th>Month</th><th>d100</th><th>Range</th><th>Upkeep</th><th>Profit</th><th>Net</th></tr>`, tU=0, tP=0, tN=0;
+      for(let i=1;i<=m;i++){
+        let r = rollDie(100), f = r+mod, v = Math.max(1,Math.min(100,f)), u=0, b=0, rng='';
+        if(v<=20){rng='01-20';u=1.5*up*days;}else if(v<=30){rng='21-30';u=1.0*up*days;}else if(v<=40){rng='31-40';u=0.5*up*days;}else if(v<=60){rng='41-60';}else if(v<=80){rng='61-80';b=rollDie(6)*5;}else if(v<=90){rng='81-90';b=(rollDie(8)+rollDie(8))*5;}else{rng='91+';b=(rollDie(10)*3)*5;}
+        let fp=b*mult, net=fp-u; tU+=u; tP+=fp; tN+=net;
+        html+=`<tr><td>${i}</td><td>${r} ${mod>=0?'+':''}${mod} = <b>${f}</b></td><td>${rng}</td><td class="loss">${u.toFixed(2)} gp</td><td>${mult===1?b+' gp':`<span style="color:#888">${b}×</span><b class="profit">${fp.toFixed(2)} gp</b>`}</td><td class="${net>=0?'profit':'loss'}">${net.toFixed(2)} gp</td></tr>`;
+      }
+      html+=`</table><div class="summary-box"><div><h3>Upkeep</h3><span class="loss">${tU.toFixed(2)} gp</span></div><div><h3>Profit</h3><span class="profit">${tP.toFixed(2)} gp</span></div><div><h3>Net</h3><span class="${tN>=0?'profit':'loss'}">${tN.toFixed(2)} gp</span></div></div>`;
+      document.getElementById('businessOutput').innerHTML = html;
+    }
+
+    function rollCarousing() {
+      const w = parseInt(document.getElementById('carousingWeeks').value)||1, b = parseInt(document.getElementById('carousingBonus').value)||0, c = document.getElementById('carousingClass').value;
+      const costs = {lower:10,middle:50,upper:250};
+      const comps = {
+        lower:["Pickpocket lifts 1d10×5 gp.","Bar brawl leaves you scarred.","Fuzzy memories of doing something illegal.","Banned from a tavern for obnoxious behavior.","Swore in town square to pursue a quest.","Surprise! You're married!","Streaked naked through streets.","Everyone calls you a weird nickname."],
+        middle:["Insulted a guild master (public apology needed).","Swore to complete a guild quest.","Social gaffe made you town talk.","Obnoxious person took intense romantic interest.","Made foe of local spellcaster.","Recruited to run a local event.","Drunken toast scandalized locals.","Spent extra 100 gp impressing people."],
+        upper:["Pushy noble wants to marry scion to you.","Tripped during dance, people talking.","Agreed to take on noble's debts.","Challenged by knight to joust.","Made foe of local noble.","Boring noble insists daily visits/rants.","Target of embarrassing rumors.","Spent extra 500 gp impressing people."]
+      };
+      let html=`<table class="results-table"><tr><th>Week</th><th>d20</th><th>Check</th><th>Contacts</th><th>Cost</th></tr>`, tC=0, a=0, h=0, log=[];
+      for(let i=1;i<=w;i++){
+        let d=rollDie(20), ch=d+b, bc=costs[c], wt=bc; tC+=bc;
+        let cs=''; if(ch<=5){cs='<span class="loss">1 Hostile</span>';h++;}else if(ch<=10){cs='None';}else if(ch<=15){cs='<span class="profit">1 Allied</span>';a++;}else if(ch<=20){cs='<span class="profit">2 Allied</span>';a+=2;}else{cs='<span class="profit">3 Allied</span>';a+=3;}
+        if(rollDie(10)===1){
+          let idx=rollDie(8)-1, txt=comps[c][idx], ex=0, dtxt=txt;
+          if(txt.includes('1d10')){ex=rollDie(10)*5;dtxt=txt.replace(/1d10[x×]5/g,`<b class="loss">${ex}</b>`);}
+          else if(txt.includes('100')){ex=100;dtxt=txt.replace('100 gp','<b class="loss">100</b> gp');}
+          else if(txt.includes('500')){ex=500;dtxt=txt.replace(/500gp?/gi,'<b class="loss">500</b>gp');}
+          wt+=ex; tC+=ex; log.push(`Week ${i}: ${dtxt}${ex>0?` (+${ex} gp)`:''}`);
+        }
+        html+=`<tr><td>${i}</td><td>${d}+${b}=<b>${ch}</b></td><td>${cs}</td><td class="loss">${wt} gp</td></tr>`;
+      }
+      html+=`</table><div class="summary-box"><div><h3>Spent</h3><span class="loss">${tC} gp</span></div><div><h3>Allied</h3><span class="profit">${a}</span></div><div><h3>Hostile</h3><span class="loss">${h}</span></div></div>`;
+      html+=`<div class="comp-log"><h3>📜 Log</h3><ul>${log.length?log.map(l=>`<li>${l}</li>`).join(''):'<li>None ✅</li>'}</ul></div>`;
+      document.getElementById('carousingOutput').innerHTML = html;
+    }
+
+    function calculateWork() {
+      const w=parseInt(document.getElementById('workWeeks').value)||1, m=parseInt(document.getElementById('workModifier').value)||0;
+      const compTable=["Fight/customer reduces wages by half.","Employer can't pay this week.","Coworker with ties hates you.","Employer involved with cult/crime.","Crime ring targets employer.","Poor reputation costs half earnings next 6 wks."];
+      let html=`<table class="results-table"><tr><th>Week</th><th>d20</th><th>Check</th><th>Earnings</th><th>Status</th></tr>`, tE=0, log=[];
+      for(let i=1;i<=w;i++){
+        let d=rollDie(20), ch=d+m, bp=ch<=9?1:ch<=14?5:ch<=20?20:45, fp=bp, st='<span class="profit">✅ None</span>';
+        if(rollDie(10)===1){
+          let idx=rollDie(6)-1, txt=compTable[idx], nt='';
+          if(idx===0){fp=Math.floor(bp/2);nt=" (Pay halved)";}else if(idx===1){fp=0;nt=" (No pay)";}
+          log.push(`Week ${i}: ${txt}${nt}`); st='<span class="loss">⚠️ Complication</span>';
+        }
+        tE+=fp; html+=`<tr><td>${i}</td><td>${d}+${m}=<b>${ch}</b></td><td class="profit">${fp} gp</td><td>${st}</td></tr>`;
+      }
+      html+=`</table><div class="summary-box"><div><h3>Earned</h3><span class="profit">${tE} gp</span></div><div><h3>Weeks</h3><span>${w}</span></div><div><h3>Complications</h3><span>${log.length}</span></div></div>`;
+      html+=`<div class="comp-log"><h3>📜 Log</h3><ul>${log.length?log.map(l=>`<li>${l}</li>`).join(''):'<li>None ✅</li>'}</ul></div>`;
+      document.getElementById('workOutput').innerHTML = html;
+    }
+
+    function calculateCrime() {
+      const w=parseInt(document.getElementById('crimeWeeks').value)||1;
+      const compTable=["Bounty placed on you equal to crime value.","Blackmailed to perform service or be exposed.","Victim financially ruined by your crime.","Witness gets arrested.","Loot is single, easily identifiable item (can't fence).","Robbed someone under crime lord protection.","Victim calls in guard favor.","Victim asks friend to solve case."];
+      let html=`<table class="results-table"><tr><th>Week</th><th>d10</th><th>Status</th><th>Details</th></tr>`, log=[];
+      for(let i=1;i<=w;i++){
+        let d=rollDie(10), st='<span class="profit">✅ None</span>', dt='Clean getaway';
+        if(d===1){let idx=rollDie(8)-1; dt=compTable[idx]; st='<span class="loss">⚠️ Complication</span>'; log.push(`Week ${i}: ${dt}`);}
+        html+=`<tr><td>${i}</td><td>${d}</td><td>${st}</td><td>${dt}</td></tr>`;
+      }
+      html+=`</table><div class="summary-box"><div><h3>Weeks</h3><span>${w}</span></div><div><h3>Complications</h3><span>${log.length}</span></div><div><h3>Clean Rate</h3><span>${Math.round(((w-log.length)/w)*100)}%</span></div></div>`;
+      html+=`<div class="comp-log"><h3>📜 Log</h3><ul>${log.length?log.map(l=>`<li>${l}</li>`).join(''):'<li>None ✅</li>'}</ul></div>`;
+      document.getElementById('crimeOutput').innerHTML = html;
+    }
+
+    function calculateGambling() {
+      const w=parseInt(document.getElementById('gamblingWeeks').value)||1, bet=parseFloat(document.getElementById('gamblingBet').value)||10;
+      const compTable=["You are accused of cheating.","The guard raids the gambling hall and arrests you.","A noble loses badly to you and vows revenge.","You won and a local thieves guild wants its money back.","A local criminal insists you only gamble at their place.","A local high stakes gamer insists you play their game."];
+      let html=`<table class="results-table"><tr><th>Week</th><th>DC 1</th><th>DC 2</th><th>DC 3</th><th>Successes</th><th>Result</th><th>Status</th></tr>`, log=[], tNet=0;
+      for(let i=1;i<=w;i++){
+        let d1=rollDie(10)+rollDie(10)+5, d2=rollDie(10)+rollDie(10)+5, d3=rollDie(10)+rollDie(10)+5;
+        let st='<span class="profit">✅ Clean</span>';
+        if(rollDie(10)===1){let idx=rollDie(6)-1; st='<span class="loss">⚠️ Complication</span>'; log.push(`Week ${i}: ${compTable[idx]}`);}
+        html+=`<tr id="g-${i}"><td>${i}</td><td>${d1}</td><td>${d2}</td><td>${d3}</td><td><select onchange="gRes(${i},${bet})"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td><td class="res">-${bet} gp</td><td>${st}</td></tr>`;
+      }
+      html+=`</table><div class="summary-box"><div><h3>Weeks</h3><span>${w}</span></div><div><h3>Complications</h3><span>${log.length}</span></div><div><h3>Base Bet</h3><span>${bet} gp</span></div></div>`;
+      html+=`<div class="comp-log"><h3>📜 Log</h3><ul>${log.length?log.map(l=>`<li>${l}</li>`).join(''):'<li>None ✅</li>'}</ul></div>`;
+      document.getElementById('gamblingOutput').innerHTML = html;
+    }
+    window.gRes = function(i,bet){
+      let sel=document.querySelector(`#g-${i} select`), v=parseInt(sel.value), r='';
+      if(v===0) r=`-${bet} gp (Lose + Debt)`; else if(v===1) r=`-${Math.ceil(bet/2)} gp`; else if(v===2) r=`+${Math.ceil(bet/2)} gp`; else r=`+${bet} gp`;
+      let cell=sel.closest('tr').querySelector('.res'); cell.textContent=r; cell.className='res '+(v>=2?'profit':'loss');
+    }
+
+    function calculateArena() {
+      const w=parseInt(document.getElementById('arenaWeeks').value)||1;
+      const compTable=["Opponent swears revenge.","Crime boss pays you to lose.","Defeat popular local, crowd mad.","Defeat noble's servant, noble pissed.","Accused of cheating.","Accidentally kill a foe you weren't supposed to."];
+      const payouts = [0, 50, 100, 200];
+      let html=`<table class="results-table"><tr><th>Week</th><th>DC 1</th><th>DC 2</th><th>DC 3</th><th>Successes</th><th>Result</th><th>Status</th></tr>`, log=[];
+      for(let i=1;i<=w;i++){
+        let d1=rollDie(10)+rollDie(10)+5, d2=rollDie(10)+rollDie(10)+5, d3=rollDie(10)+rollDie(10)+5;
+        let st='<span class="profit">✅ Clean</span>';
+        if(rollDie(10)===1){let idx=rollDie(6)-1; st='<span class="loss">⚠️ Complication</span>'; log.push(`Week ${i}: ${compTable[idx]}`);}
+        html+=`<tr id="a-${i}"><td>${i}</td><td>${d1}</td><td>${d2}</td><td>${d3}</td><td><select onchange="aRes(${i})"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></td><td class="res">0 gp</td><td>${st}</td></tr>`;
+      }
+      html+=`</table><div class="summary-box"><div><h3>Weeks</h3><span>${w}</span></div><div><h3>Complications</h3><span>${log.length}</span></div><div><h3>Total Wins</h3><span id="a-total">0 gp</span></div></div>`;
+      html+=`<div class="comp-log"><h3>📜 Log</h3><ul>${log.length?log.map(l=>`<li>${l}</li>`).join(''):'<li>None ✅</li>'}</ul></div>`;
+      document.getElementById('arenaOutput').innerHTML = html;
+    }
+    window.aRes = function(i){
+      let sel=document.querySelector(`#a-${i} select`), v=parseInt(sel.value), payouts=[0,50,100,200];
+      let cell=sel.closest('tr').querySelector('.res'); cell.textContent=payouts[v]+' gp'; cell.className='res '+(v>0?'profit':'loss');
+      let total=0; document.querySelectorAll('[id^="a-"] .res').forEach(c=>total+=parseInt(c.textContent));
+      document.getElementById('a-total').textContent=total+' gp';
+    }
+
+    window.onload = () => { calculateBusiness(); rollCarousing(); calculateWork(); calculateCrime(); calculateGambling(); calculateArena(); };
+  </script>
+</body>
+</html>

@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AETHERIC SCRYING ENGINE v. IV</title>
+    <style>
+        :root {
+            --bg-color: #050508;
+            --terminal-blue: #00e5ff; 
+            --terminal-dim: #007a8a;
+            --alert-red: #ff3333;
+            --glow: 0 0 5px #00e5ff, 0 0 10px #00e5ff;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--terminal-blue);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* CRT / Scrying Pool Scanline Effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 255, 0.02), rgba(0, 0, 255, 0.03));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .terminal-container {
+            width: 100%;
+            max-width: 800px;
+            border: 2px solid var(--terminal-dim);
+            padding: 20px;
+            box-shadow: var(--glow);
+            background: rgba(0, 10, 20, 0.4);
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            border-bottom: 1px dashed var(--terminal-dim);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+        }
+
+        .subject-info {
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .subject-id {
+            color: #fff;
+            text-shadow: 0 0 5px #fff;
+        }
+
+        .memory-output {
+            min-height: 200px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--terminal-dim);
+            padding: 15px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            font-size: 1.1em;
+            position: relative;
+        }
+
+        .corruption {
+            color: var(--alert-red);
+            text-shadow: 0 0 5px var(--alert-red);
+            font-weight: bold;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--terminal-blue);
+            color: var(--terminal-blue);
+            padding: 10px 20px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1em;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: var(--terminal-blue);
+            color: var(--bg-color);
+            box-shadow: var(--glow);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .index-link {
+            text-decoration: none;
+        }
+
+        .status {
+            font-size: 0.9em;
+            color: var(--terminal-dim);
+            margin-left: auto; 
+        }
+        
+        .blink {
+            animation: blinker 1s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="terminal-container">
+    <div class="header">
+        <div>ENGINE: AETHERIC_SCrying_v4.0</div>
+        <div>CYCLE: <span id="current-date"></span></div>
+    </div>
+
+    <div class="subject-info">
+        > CAPTIVE DESIGNATION: <span class="subject-id" id="subject-id">AWAITING TETHER...</span><br>
+        > SOUL RESONANCE: <span id="sync-status">DORMANT</span>
+    </div>
+
+    <div class="memory-output" id="memory-output">
+        <span class="blink">_</span> THE CRYSTAL IS STILL. AWAITING SCRYING COMMAND...
+    </div>
+
+    <div class="controls">
+        <a href="index.html" class="index-link"><button id="index-btn">[ RETURN TO INDEX ]</button></a>
+        <button id="extract-btn" onclick="extractMemory()">[ INITIATE SCRYING ]</button>
+        <div class="status" id="status-text">The aether is quiet.</div>
+    </div>
+</div>
+
+<script>
+    // Fantasy Date Generator
+    const months = ["Frostfall", "Deepwinter", "Springrise", "Bloomtide", "Sunpeak", "Highsummer", "Harvestmoon", "Leafdrift", "Duskfall", "Autumnend", "Darkreach", "Midnight"];
+    const now = new Date();
+    document.getElementById('current-date').innerText = `${now.getDate()} ${months[now.getMonth()]}, ${now.getFullYear()}`;
+
+    // --- MASSIVE DATA POOLS ---
+
+    // 1. MUNDANE DATA (Everyday medieval life)
+    const mundaneData = {
+        sensory: [
+            "the warm, yeasty smell of baking bread", "the rhythmic clink of the blacksmith's hammer",
+            "the rough scratch of wool against my neck", "the taste of sharp, watered-down ale",
+            "the sound of rain pattering gently on a thatched roof", "the smell of woodsmoke and damp earth",
+            "the feeling of calluses rubbing against a wooden hoe", "the distant sound of village children laughing",
+            "the warmth of the hearth fire on my tired hands", "the sweet scent of blooming hawthorn",
+            "the bitter taste of medicinal herbs", "the cold bite of winter wind on exposed skin",
+            "the heavy thud of boots on cobblestones", "the scratching of a quill on parchment",
+            "the metallic tang of polishing oil", "the soft cooing of doves in the rafters",
+            "the smell of wet dog after a bath", "the crackle of dry kindling catching fire",
+            "the sticky sweetness of honey on fingers", "the dusty smell of an old library",
+            "the rhythmic swish of a broom on stone", "the chill of morning dew through thin shoes",
+            "the smell of roasting meat from the tavern", "the sound of a lute being tuned poorly",
+            "the weight of a full water bucket", "the sting of soap in a cut on my hand",
+            "the smell of fresh linen drying in the sun", "the rumble of a cart wheel on a rutted road",
+            "the taste of stale hardtack", "the smell of horse manure and hay",
+            "the gentle hum of bees in the garden", "the sharp snap of a twig underfoot",
+            "the feeling of mud sucking at my boots", "the smell of iron rusting in the rain",
+            "the taste of wild berries, slightly sour", "the sound of church bells tolling the hour",
+            "the warmth of a sleeping cat on my lap", "the smell of tanned leather",
+            "the gritty feel of sand between my teeth", "the cool relief of shade on a hot day",
+            "the sound of a knife sharpening on steel", "the smell of boiling cabbage",
+            "the feeling of stiff joints after resting", "the taste of salt on preserved fish",
+            "the sound of wind whistling through cracks", "the smell of lavender sachets",
+            "the feeling of rain soaking through my cloak", "the taste of fresh milk",
+            "the sound of a door creaking open", "the smell of candle wax",
+            "the feeling of a coin purse weighing down my belt", "the sound of geese honking",
+            "the smell of wet wool drying by the fire", "the taste of apple cider",
+            "the feeling of straw poking through a mattress", "the sound of a baby crying",
+            "the smell of yeast rising", "the taste of burnt toast",
+            "the feeling of sunburn on my shoulders", "the sound of leaves crunching underfoot",
+            "the smell of pine needles", "the taste of river water",
+            "the feeling of a splinter in my finger", "the sound of a dog barking",
+            "the smell of fresh bread", "the taste of cheese",
+            "the feeling of a warm bath", "the sound of a horse neighing",
+            "the smell of flowers", "the taste of wine",
+            "the feeling of a hug", "the sound of laughter",
+            "the smell of rain", "the taste of chocolate",
+            "the feeling of grass", "the sound of birds",
+            "the smell of coffee", "the taste of tea",
+            "the feeling of sand", "the sound of waves",
+            "the smell of the ocean", "the taste of salt",
+            "the feeling of wind", "the sound of thunder",
+            "the smell of ozone", "the taste of lightning",
+            "the feeling of static", "the sound of silence",
+            "the smell of nothing", "the taste of air",
+            "the feeling of peace", "the sound of breathing",
+            "the smell of life", "the taste of existence",
+            "the feeling of being", "the sound of time",
+            "the smell of history", "the taste of memory",
+            "the feeling of nostalgia", "the sound of the past",
+            "the smell of yesterday", "the taste of tomorrow",
+            "the feeling of hope", "the sound of dreams"
+        ],
+        scenes: [
+            "chopping firewood in the crisp morning air", "mending a torn tunic by the hearth",
+            "walking through the bustling market stalls", "tending to a stubborn, mud-caked mule",
+            "sweeping the front steps of the cottage", "watching the geese waddle through the square",
+            "sorting dried herbs into clay pots", "churning butter until my arms ache",
+            "resting in the shade of an oak tree", "plowing the north field with old Bessie",
+            "selling apples at the town fair", "learning to read from the village priest",
+            "mending a fishing net by the riverbank", "gathering mushrooms in the deep woods",
+            "polishing the lord's silverware", "feeding the chickens at dawn",
+            "drawing water from the deep well", "weaving baskets from willow branches",
+            "helping the baker knead dough", "shoeing a restless horse",
+            "cleaning the stables after a long ride", "studying maps by candlelight",
+            "practicing sword forms in the yard", "brewing a pot of strong tea",
+            "watching the sunset from the hilltop", "listening to stories by the campfire",
+            "playing a game of dice in the tavern", "writing a letter to a distant cousin",
+            "repairing a broken fence post", "harvesting wheat under the hot sun",
+            "threshing grain in the barn", "spinning wool into thread",
+            "dyeing fabric in large vats", "carving wood into small figurines",
+            "painting a portrait of the mayor", "singing hymns in the chapel",
+            "ringing the bell for evening prayer", "locking the gates for the night",
+            "patrolling the city walls", "guarding the merchant's caravan",
+            "delivering a message to the castle", "cleaning the armor after battle",
+            "bandaging a minor wound", "sharing a meal with friends",
+            "dancing at the harvest festival", "watching a puppet show",
+            "buying a new ribbon for my hair", "fixing a leaky roof",
+            "planting seeds in the spring soil", "watering the vegetable garden",
+            "picking apples from the orchard", "pressing grapes for wine",
+            "making cheese in the dairy", "smoking fish for winter stores",
+            "salting meat in the cellar", "checking the traps in the forest",
+            "skinning a rabbit for stew", "roasting chestnuts in the fire",
+            "building a snowman with the kids", "ice skating on the frozen pond",
+            "sledding down the snowy hill", "huddling for warmth in the blizzard",
+            "opening the windows to spring air", "cleaning the house for guests",
+            "preparing for the king's visit", "decorating for the solstice",
+            "lighting lanterns for the festival", "watching fireworks over the castle",
+            "celebrating a birthday with cake", "attending a wedding ceremony",
+            "baptizing a newborn child", "mourning at a funeral service",
+            "visiting a sick relative", "praying for a good harvest",
+            "asking for forgiveness in confession", "receiving a blessing from the priest",
+            "reading scripture in the study", "meditating in the monastery gardens",
+            "copying texts in the scriptorium", "illuminating a manuscript with gold",
+            "binding a book in leather", "organizing the library shelves",
+            "teaching students in the school", "learning a new trade skill",
+            "apprenticing under a master smith", "journeying to a nearby town",
+            "returning home from a long trip", "unpacking souvenirs from the market",
+            "showing off a new purchase", "bartering for a better price",
+            "winning a contest at the fair", "losing a game of chance",
+            "finding a lost coin in the street", "helping a stranger with their load",
+            "sharing an umbrella in the rain", "offering shelter to a traveler",
+            "giving food to the poor", "donating to the church fund",
+            "volunteering for the militia", "training for the tournament",
+            "competing in the archery contest", "watching the joust from the stands",
+            "cheering for the local hero", "meeting a famous bard",
+            "getting an autograph from the king", "receiving a medal for bravery",
+            "being promoted to sergeant", "retiring from active duty",
+            "settling down on a farm", "raising a family in the village",
+            "watching grandchildren play", "telling stories to the next generation",
+            "passing on family traditions", "preserving ancient recipes",
+            "keeping the history alive", "maintaining the old ways",
+            "respecting the elders", "honoring the ancestors",
+            "celebrating the cycles of life", "accepting the inevitability of death",
+            "finding peace in the everyday", "appreciating the simple things",
+            "loving the land and its people", "serving the community with pride",
+            "living a life of purpose", "dying with no regrets"
+        ],
+        figures: [
+            "the local baker, arms dusted with flour", "a tired farmer wiping sweat from his brow",
+            "my mother humming a familiar folk tune", "the village elder dozing in sunlight",
+            "a traveling merchant haggling loudly", "the blacksmith's apprentice pumping bellows",
+            "a neighbor carrying a basket of fresh eggs", "the priest blessing the crops",
+            "a group of children playing tag", "the miller covered in white dust",
+            "the town guard checking IDs", "a beggar asking for spare coins",
+            "a noble riding by on a high horse", "a servant scrubbing the steps",
+            "a cook shouting orders in the kitchen", "a gardener pruning the roses",
+            "a librarian shushing noisy patrons", "a student studying for exams",
+            "a teacher writing on the chalkboard", "a doctor checking a patient's pulse",
+            "a nurse changing bandages", "a midwife delivering a baby",
+            "a gravedigger digging a new plot", "a mourner laying flowers on a grave",
+            "a judge presiding over a case", "a lawyer defending a client",
+            "a criminal in the stocks", "a pickpocket running from the law",
+            "a spy watching from the shadows", "a messenger delivering urgent news",
+            "a courier riding a fast horse", "a sailor returning from sea",
+            "a fisherman mending nets", "a hunter tracking deer",
+            "a trapper checking snares", "a logger chopping trees",
+            "a miner emerging from the depths", "a smith forging a sword",
+            "a jeweler crafting a ring", "a tailor measuring for a suit",
+            "a shoemaker repairing boots", "a weaver working the loom",
+            "a dyer staining cloth", "a painter creating a masterpiece",
+            "a sculptor carving stone", "a musician playing the lute",
+            "a singer performing a ballad", "a dancer twirling in the square",
+            "an actor performing a play", "a poet reciting verses",
+            "a writer composing a novel", "a printer setting type",
+            "a bookseller selling tales", "a mapmaker drawing charts",
+            "an astronomer studying stars", "an alchemist mixing potions",
+            "a wizard casting spells", "a witch brewing cauldrons",
+            "a druid talking to trees", "a cleric healing wounds",
+            "a paladin fighting evil", "a ranger protecting the wild",
+            "a rogue stealing treasures", "a barbarian raging in battle",
+            "a monk meditating peacefully", "a ninja hiding in shadows",
+            "a samurai practicing kata", "a knight upholding honor",
+            "a king ruling the land", "a queen advising her husband",
+            "a prince learning to lead", "a princess dreaming of adventure",
+            "a duke managing estates", "a duchess hosting parties",
+            "a baron collecting taxes", "a baroness charming guests",
+            "a count counting coins", "a countess sewing tapestries",
+            "a marquis marching armies", "a marchioness writing letters",
+            "a viscount visiting villages", "a viscountess volunteering",
+            "a lord holding court", "a lady receiving callers",
+            "a squire cleaning armor", "a page running errands",
+            "a maid cleaning rooms", "a butler serving dinner",
+            "a chef cooking meals", "a waiter serving drinks",
+            "a bartender mixing ales", "a patron enjoying a pint",
+            "a regular telling stories", "a newcomer asking questions",
+            "a tourist taking photos", "a guide showing sights",
+            "a historian recording events", "a archaeologist digging ruins",
+            "a anthropologist studying cultures", "a sociologist observing groups",
+            "a psychologist analyzing minds", "a philosopher pondering life",
+            "a theologian debating god", "a scientist experimenting",
+            "an engineer building bridges", "an architect designing cathedrals",
+            "a mathematician solving equations", "a physicist studying forces",
+            "a chemist mixing elements", "a biologist studying life",
+            "a geologist studying rocks", "a meteorologist predicting weather",
+            "an ecologist protecting nature", "a conservationist saving species",
+            "an activist fighting for rights", "a politician making laws",
+            "a diplomat negotiating peace", "a soldier fighting wars",
+            "a veteran remembering battles", "a civilian surviving conflicts",
+            "a refugee seeking safety", "an immigrant starting anew",
+            "a citizen voting in elections", "a leader guiding the people",
+            "a follower supporting causes", "a rebel challenging authority",
+            "a revolutionary changing systems", "a reformer improving society",
+            "a innovator creating technology", "a inventor building machines",
+            "a entrepreneur starting businesses", "a investor funding projects",
+            "a manager overseeing teams", "a employee doing work",
+            "a customer buying goods", "a seller providing services",
+            "a producer making products", "a consumer using items",
+            "a creator making art", "a critic reviewing works",
+            "a fan supporting idols", "a star shining bright",
+            "a hero saving the day", "a villain plotting doom",
+            "a victim suffering loss", "a survivor overcoming odds",
+            "a winner celebrating victory", "a loser accepting defeat",
+            "a champion holding titles", "a contender striving for more",
+            "a master teaching skills", "a student learning lessons",
+            "a mentor guiding paths", "a protege following steps",
+            "a friend offering support", "an enemy causing trouble",
+            "a ally standing together", "a rival competing fiercely",
+            "a partner sharing life", "a spouse loving deeply",
+            "a parent raising children", "a child growing up",
+            "a sibling sharing bonds", "a cousin visiting often",
+            "a aunt giving advice", "a uncle telling jokes",
+            "a grandparent sharing wisdom", "a grandchild bringing joy",
+            "a neighbor helping out", "a stranger passing by",
+            "a acquaintance saying hello", "a friend staying forever"
+        ],
+        emotions: [
+            "a quiet, simple contentment", "the deep satisfaction of hard labor",
+            "a mild, fleeting boredom", "a warm, comforting nostalgia",
+            "the gentle joy of a shared meal", "a peaceful, heavy drowsiness",
+            "the pride of a job well done", "the anxiety of an upcoming deadline",
+            "the excitement of a festival approaching", "the sadness of a rainy day",
+            "the anger at a rude customer", "the fear of a loud noise",
+            "the surprise of a unexpected gift", "the disgust at a bad smell",
+            "the love for a family member", "the hate for a cruel person",
+            "the hope for a better future", "the despair of a lost cause",
+            "the confidence of a skilled worker", "the doubt of a beginner",
+            "the courage to face a challenge", "the cowardice to run away",
+            "the patience of a teacher", "the impatience of a student",
+            "the kindness of a stranger", "the cruelty of a bully",
+            "the generosity of a rich man", "the greed of a poor man",
+            "the humility of a saint", "the pride of a sinner",
+            "the faith of a believer", "the skepticism of a non-believer",
+            "the optimism of a youth", "the pessimism of an elder",
+            "the energy of a morning", "the fatigue of an evening",
+            "the clarity of a thought", "the confusion of a dream",
+            "the focus of a task", "the distraction of a noise",
+            "the calm of a lake", "the storm of a mind",
+            "the silence of a library", "the noise of a market",
+            "the order of a schedule", "the chaos of a crisis",
+            "the structure of a plan", "the spontaneity of a moment",
+            "the routine of a day", "the novelty of a experience",
+            "the familiarity of a place", "the strangeness of a person",
+            "the comfort of a home", "the adventure of a journey",
+            "the safety of a wall", "the danger of a wild",
+            "the warmth of a fire", "the cold of a ice",
+            "the light of a sun", "the dark of a night",
+            "the sound of a music", "the silence of a void",
+            "the taste of a sweet", "the bitterness of a sour",
+            "the smell of a flower", "the stench of a rot",
+            "the touch of a silk", "the roughness of a bark",
+            "the sight of a beauty", "the ugliness of a horror",
+            "the feeling of a love", "the pain of a loss",
+            "the joy of a win", "the sorrow of a lose",
+            "the happiness of a life", "the sadness of a death",
+            "the meaning of a existence", "the pointlessness of a void",
+            "the purpose of a mission", "the aimlessness of a drift",
+            "the direction of a path", "the confusion of a maze",
+            "the goal of a target", "the miss of a shot",
+            "the hit of a bullseye", "the error of a mistake",
+            "the correction of a fix", "the improvement of a upgrade",
+            "the degradation of a decay", "the preservation of a save",
+            "the deletion of a remove", "the creation of a make",
+            "the destruction of a break", "the repair of a mend",
+            "the building of a construct", "the demolishing of a destroy",
+            "the growth of a plant", "the shrinking of a shrink",
+            "the expansion of a expand", "the contraction of a contract",
+            "the inflation of a inflate", "the deflation of a deflate",
+            "the increase of a add", "the decrease of a subtract",
+            "the multiplication of a multiply", "the division of a divide",
+            "the addition of a plus", "the subtraction of a minus",
+            "the positive of a good", "the negative of a bad",
+            "the neutral of a okay", "the extreme of a wow",
+            "the moderate of a meh", "the intense of a whoa",
+            "the mild of a hmm", "the strong of a yeah",
+            "the weak of a nay", "the powerful of a yep",
+            "the powerless of a nope", "the effective of a yes",
+            "the ineffective of a no", "the efficient of a quick",
+            "the inefficient of a slow", "the fast of a zoom",
+            "the slow of a crawl", "the quick of a dash",
+            "the sluggish of a drag", "the rapid of a rush",
+            "the leisurely of a stroll", "the hurried of a sprint",
+            "the relaxed of a chill", "the stressed of a panic",
+            "the calm of a zen", "the anxious of a worry",
+            "the peaceful of a peace", "the chaotic of a chaos",
+            "the orderly of a order", "the messy of a mess",
+            "the clean of a clean", "the dirty of a dirt",
+            "the pure of a pure", "the corrupt of a corrupt",
+            "the holy of a holy", "the unholy of a unholy",
+            "the sacred of a sacred", "the profane of a profane",
+            "the divine of a divine", "the mortal of a mortal",
+            "the eternal of a eternal", "the temporary of a temporary",
+            "the permanent of a permanent", "the transient of a transient",
+            "the lasting of a lasting", "the fleeting of a fleeting",
+            "the enduring of a enduring", "the vanishing of a vanishing",
+            "the remaining of a remaining", "the disappearing of a disappearing",
+            "the appearing of a appearing", "the existing of a existing",
+            "the being of a being", "the nothing of a nothing",
+            "the something of a something", "the everything of a everything",
+            "the anything of a anything", "the nothingness of a nothingness"
+        ]
+    };
+
+    // 2. ANOMALOUS DATA (The weird, dark fantasy stuff)
+    const anomalousData = {
+        sensory: [
+            "the sharp scent of crushed nightshade and old blood", "a sudden, unnatural chill that frosts the breath",
+            "the metallic taste of ash and copper in my mouth", "the blinding flash of violet arcane lightning",
+            "the sound of distant, mournful war horns", "a persistent, whispering wind that speaks my true name",
+            "the feeling of phantom chains pulling at my wrists", "the smell of ozone and burning hair",
+            "the taste of bile and magic", "the sound of bones grinding together",
+            "the sight of shadows moving independently", "the feeling of insects crawling under my skin",
+            "the smell of rotting flowers", "the taste of spoiled milk and iron",
+            "the sound of a child crying in an empty room", "the sight of eyes watching from the dark",
+            "the feeling of being touched by invisible hands", "the smell of sulfur and brimstone",
+            "the taste of dirt and grave soil", "the sound of a heartbeat that isn't mine",
+            "the sight of blood raining from the sky", "the feeling of drowning in air",
+            "the smell of formaldehyde and preservatives", "the taste of glass shards",
+            "the sound of screaming silence", "the sight of faces melting like wax",
+            "the feeling of falling upwards", "the smell of burnt offerings",
+            "the taste of forbidden knowledge", "the sound of reality tearing apart",
+            "the sight of geometric shapes that hurt to look at", "the feeling of my soul being pulled out",
+            "the smell of ancient dust and decay", "the taste of venom",
+            "the sound of chanting in a dead language", "the sight of ghosts dancing",
+            "the feeling of cold fingers on my spine", "the smell of wet fur and musk",
+            "the taste of ashes", "the sound of a clock ticking backwards",
+            "the sight of mirrors showing different reflections", "the feeling of weightlessness",
+            "the smell of stagnant water", "the taste of rust",
+            "the sound of whispers in my head", "the sight of portals opening",
+            "the feeling of electricity coursing through me", "the smell of burnt circuitry",
+            "the taste of static", "the sound of digital glitches",
+            "the sight of pixelated horrors", "the feeling of disintegration",
+            "the smell of corrupted data", "the taste of binary code",
+            "the sound of server fans whirring", "the sight of matrix code",
+            "the feeling of being uploaded", "the smell of virtual reality",
+            "the taste of simulation", "the sound of artificial intelligence",
+            "the sight of cybernetic enhancements", "the feeling of merging with machine",
+            "the smell of oil and grease", "the taste of metal",
+            "the sound of engines roaring", "the sight of futuristic cities",
+            "the feeling of flying in a spaceship", "the smell of outer space",
+            "the taste of zero gravity", "the sound of alien languages",
+            "the sight of extraterrestrial life", "the feeling of first contact",
+            "the smell of unknown planets", "the taste of alien flora",
+            "the sound of cosmic rays", "the sight of black holes",
+            "the feeling of event horizons", "the smell of singularity",
+            "the taste of time dilation", "the sound of wormholes",
+            "the sight of parallel universes", "the feeling of multiverse travel",
+            "the smell of dimensional rifts", "the taste of quantum foam",
+            "the sound of string theory", "the sight of dark matter",
+            "the feeling of dark energy", "the smell of antimatter",
+            "the taste of positrons", "the sound of neutrinos",
+            "the sight of photons", "the feeling of electrons",
+            "the smell of protons", "the taste of neutrons",
+            "the sound of quarks", "the sight of gluons",
+            "the feeling of bosons", "the smell of fermions",
+            "the taste of leptons", "the sound of hadrons",
+            "the sight of mesons", "the feeling of baryons",
+            "the smell of muons", "the taste of taus",
+            "the sound of neutrinos oscillating", "the sight of Higgs bosons",
+            "the feeling of mass generation", "the smell of symmetry breaking",
+            "the taste of spontaneous emission", "the sound of stimulated emission",
+            "the sight of population inversion", "the feeling of laser coherence",
+            "the smell of optical pumping", "the taste of photon amplification",
+            "the sound of light speed", "the sight of relativity",
+            "the feeling of spacetime curvature", "the smell of gravitational waves",
+            "the taste of frame dragging", "the sound of time dilation",
+            "the sight of length contraction", "the feeling of mass increase",
+            "the smell of energy momentum", "the taste of four vectors",
+            "the sound of tensors", "the sight of manifolds",
+            "the feeling of topology", "the smell of geometry",
+            "the taste of algebra", "the sound of calculus",
+            "the sight of statistics", "the feeling of probability",
+            "the smell of randomness", "the taste of chaos",
+            "the sound of complexity", "the sight of emergence",
+            "the feeling of self organization", "the smell of adaptation",
+            "the taste of evolution", "the sound of natural selection",
+            "the sight of survival of the fittest", "the feeling of genetic drift",
+            "the smell of mutation", "the taste of recombination",
+            "the sound of transcription", "the sight of translation",
+            "the feeling of replication", "the smell of cell division",
+            "the taste of mitosis", "the sound of meiosis",
+            "the sight of fertilization", "the feeling of embryogenesis",
+            "the smell of development", "the taste of differentiation",
+            "the sound of morphogenesis", "the sight of organogenesis",
+            "the feeling of growth", "the smell of aging",
+            "the taste of senescence", "the sound of death",
+            "the sight of decomposition", "the feeling of recycling",
+            "the smell of nutrients", "the taste of ecosystem",
+            "the sound of biome", "the sight of biosphere",
+            "the feeling of gaia", "the smell of earth",
+            "the taste of life", "the sound of universe",
+            "the sight of cosmos", "the feeling of everything"
+        ],
+        scenes: [
+            "fleeing through the burning ruins of a grand cathedral", "standing in a circle of ancient standing stones under a blood moon",
+            "sitting in a tavern where the patrons have no faces", "falling through a sky of shattered glass and dragon fire",
+            "holding a rusted iron crown in a throne room of bones", "watching a griffin tear itself apart in the mud",
+            "wading through a river of black, sluggish water", "walking through a forest where the trees are made of flesh",
+            "entering a library where the books scream when opened", "fighting a shadow that mimics my every move",
+            "seeing my own corpse lying in a coffin", "being chased by hounds with eyes of fire",
+            "trapped in a mirror maze with no exit", "watching the sun turn black and vanish",
+            "standing on a cliff edge as the world crumbles", "swimming in an ocean of blood",
+            "climbing a tower that stretches into infinity", "lost in a labyrinth of shifting walls",
+            "trapped in a time loop of the same tragic event", "witnessing the birth of a dark god",
+            "being sacrificed on a stone altar", "transforming into a beast against my will",
+            "haunted by the ghosts of my victims", "cursed to wander the earth forever",
+            "doomed to repeat my worst mistakes", "condemned to hell for my sins",
+            "judged by a council of demons", "tortured by my own nightmares",
+            "driven mad by forbidden knowledge", "consumed by a parasitic entity",
+            "possessed by a vengeful spirit", "controlled by a dark sorcerer",
+            "enslaved by a tyrannical king", "betrayed by my closest friend",
+            "abandoned by my family", "rejected by my lover",
+            "forgotten by history", "erased from existence",
+            "deleted from reality", "removed from the timeline",
+            "purged from the system", "formatted from the drive",
+            "overwritten by new data", "corrupted by a virus",
+            "infected by malware", "hacked by a intruder",
+            "spied on by a surveillance state", "controlled by a totalitarian regime",
+            "oppressed by a fascist government", "exploited by a capitalist corporation",
+            "marginalized by a discriminatory society", "victimized by a criminal organization",
+            "terrorized by a terrorist group", "threatened by a hostile nation",
+            "invaded by a foreign army", "occupied by a colonial power",
+            "colonized by a imperialist empire", "enslaved by a slave trading network",
+            "trafficked by a human smuggling ring", "exploited by a sex trafficking ring",
+            "abused by a domestic partner", "neglected by a caregiver",
+            "bullied by a peer", "harassed by a colleague",
+            "discriminated against by a employer", "prejudiced against by a community",
+            "stereotyped by a media outlet", "misrepresented by a news source",
+            "propagandized by a political party", "manipulated by a advertising campaign",
+            "brainwashed by a cult", "indoctrinated by a religious institution",
+            "radicalized by a extremist group", "recruited by a military organization",
+            "deployed to a war zone", "stationed at a remote outpost",
+            "assigned to a dangerous mission", "tasked with a impossible objective",
+            "ordered to commit a war crime", "forced to follow a unlawful command",
+            "compelled to betray my conscience", "coerced into acting against my values",
+            "pressured to conform to social norms", "expected to meet societal expectations",
+            "required to fulfill familial duties", "obligated to honor cultural traditions",
+            "bound by legal contracts", "restricted by governmental regulations",
+            "limited by technological constraints", "constrained by physical laws",
+            "bounded by mathematical principles", "defined by logical axioms",
+            "determined by causal relationships", "influenced by environmental factors",
+            "shaped by historical contexts", "formed by social structures",
+            "constructed by cultural narratives", "created by artistic expressions",
+            "produced by economic systems", "generated by political processes",
+            "developed by scientific methods", "discovered by empirical observations",
+            "verified by experimental evidence", "validated by peer review",
+            "accepted by scientific consensus", "rejected by skeptical inquiry",
+            "questioned by critical thinking", "challenged by alternative hypotheses",
+            "refuted by contradictory data", "supported by corroborating facts",
+            "confirmed by independent verification", "established by rigorous testing",
+            "proven by logical deduction", "demonstrated by practical application",
+            "illustrated by concrete examples", "explained by theoretical models",
+            "described by qualitative analysis", "quantified by statistical methods",
+            "measured by precise instruments", "observed by trained experts",
+            "recorded by accurate devices", "analyzed by sophisticated software",
+            "interpreted by knowledgeable humans", "understood by intelligent beings",
+            "comprehended by conscious minds", "perceived by sentient entities",
+            "experienced by living organisms", "felt by emotional creatures",
+            "thought by rational agents", "believed by faithful individuals",
+            "known by wise sages", "learned by curious students",
+            "taught by experienced teachers", "shared by generous mentors",
+            "passed on by caring parents", "inherited by deserving children",
+            "preserved by dedicated historians", "protected by vigilant guardians",
+            "defended by brave soldiers", "fought for by passionate activists",
+            "advocated by eloquent speakers", "promoted by influential leaders",
+            "supported by loyal followers", "backed by wealthy donors",
+            "funded by generous sponsors", "enabled by helpful assistants",
+            "facilitated by efficient systems", "optimized by smart algorithms",
+            "automated by advanced robots", "controlled by powerful computers",
+            "managed by capable administrators", "led by visionary directors",
+            "guided by wise counselors", "advised by expert consultants",
+            "consulted by trusted advisors", "recommended by reliable sources",
+            "endorsed by reputable organizations", "approved by authoritative bodies",
+            "certified by accredited institutions", "licensed by regulatory agencies",
+            "registered by official databases", "documented by archival records",
+            "archived by digital libraries", "stored by cloud servers",
+            "saved by backup systems", "recovered by disaster recovery",
+            "restored by maintenance crews", "repaired by technical support",
+            "fixed by engineering teams", "improved by quality assurance",
+            "enhanced by user feedback", "updated by software patches",
+            "upgraded by hardware replacements", "expanded by infrastructure development",
+            "scaled by business growth", "grown by organic expansion",
+            "developed by strategic planning", "evolved by natural selection",
+            "adapted by environmental pressure", "survived by competitive advantage",
+            "thrived by innovative solutions", "succeeded by effective execution",
+            "won by superior strategy", "lost by inferior tactics",
+            "failed by poor management", "collapsed by internal corruption",
+            "destroyed by external attack", "eliminated by total annihilation",
+            "extinguished by complete eradication", "vanished by absolute disappearance",
+            "gone by final departure", "ended by ultimate conclusion",
+            "finished by last chapter", "closed by final curtain",
+            "stopped by final stop", "ceased by final cease",
+            "terminated by final terminate", "completed by final complete",
+            "done by final done", "over by final over",
+            "out by final out", "away by final away",
+            "off by final off", "down by final down",
+            "up by final up", "in by final in",
+            "on by final on", "go by final go",
+            "start by final start", "begin by final begin",
+            "initiate by final initiate", "launch by final launch",
+            "execute by final execute", "run by final run",
+            "play by final play", "work by final work",
+            "function by final function", "operate by final operate",
+            "perform by final perform", "act by final act",
+            "do by final do", "be by final be",
+            "exist by final exist", "live by final live",
+            "die by final die", "end by final end"
+        ],
+        figures: [
+            "a hooded inquisitor with glowing, pupilless eyes", "a child with silver scales and slit pupils",
+            "my own reflection, but wearing a king's rotting crown", "an elven woman whispering in the forbidden tongue",
+            "a towering shadow with antlers of jagged bone", "a knight in armor that seems to bleed shadows",
+            "a lich reading from a book of skin", "a demon wearing a human mask",
+            "a ghost trapped in a mirror", "a vampire feeding on a victim",
+            "a werewolf howling at the moon", "a zombie shambling forward",
+            "a mummy unwrapping its bandages", "a witch stirring a cauldron",
+            "a wizard casting a deadly spell", "a dragon breathing fire",
+            "a kraken rising from the deep", "a phoenix rising from ashes",
+            "a unicorn with a broken horn", "a centaur charging with a spear",
+            "a mermaid singing a siren song", "a fairy granting a cursed wish",
+            "a troll guarding a bridge", "a goblin stealing shiny objects",
+            "an orc wielding a massive axe", "a dwarf forging a magical weapon",
+            "an elf shooting a poison arrow", "a human leading a rebellion",
+            "a halfling hiding in the shadows", "a gnome inventing a strange device",
+            "a bard singing a haunting melody", "a rogue picking a locked door",
+            "a fighter swinging a bloody sword", "a cleric healing a wounded ally",
+            "a paladin smiting an undead foe", "a ranger tracking a dangerous beast",
+            "a druid transforming into a bear", "a sorcerer unleashing raw magic",
+            "a warlock bargaining with a devil", "a monk punching with spiritual energy",
+            "a barbarian raging with fury", "a artificer building a mechanical servant",
+            "a blood hunter cursing a monster", "a gunslinger firing a magical pistol",
+            "a ninja assassinating a target", "a samurai dueling an opponent",
+            "a knight challenging a dragon", "a king ruling a fallen kingdom",
+            "a queen plotting a revenge", "a prince seeking a quest",
+            "a princess escaping a tower", "a duke managing a cursed estate",
+            "a duchess hiding a dark secret", "a baron collecting souls",
+            "a baroness weaving spells", "a count draining blood",
+            "a countess commanding bats", "a marquis leading an army",
+            "a marchioness spying on enemies", "a viscount judging criminals",
+            "a viscountess poisoning rivals", "a lord summoning demons",
+            "a lady communicating with spirits", "a squire fearing his master",
+            "a page delivering cursed letters", "a maid cleaning haunted rooms",
+            "a butler serving poisoned tea", "a chef cooking forbidden meals",
+            "a waiter serving invisible guests", "a bartender mixing magical ales",
+            "a patron seeing visions", "a regular telling prophecies",
+            "a newcomer bringing doom", "a tourist getting lost in time",
+            "a guide leading to hell", "a historian recording apocalypses",
+            "a archaeologist awakening evils", "a anthropologist studying monsters",
+            "a sociologist analyzing cults", "a psychologist treating madness",
+            "a theologian debating devils", "a scientist experimenting on souls",
+            "an engineer building doomsday devices", "an architect designing labyrinths",
+            "a mathematician calculating infinity", "a physicist bending reality",
+            "a chemist mixing poisons", "a biologist mutating creatures",
+            "a geologist triggering earthquakes", "a meteorologist summoning storms",
+            "an ecologist destroying nature", "a conservationist saving demons",
+            "an activist freeing monsters", "a politician making dark deals",
+            "a diplomat negotiating with hell", "a soldier fighting nightmares",
+            "a veteran haunted by ghosts", "a civilian possessed by spirits",
+            "a refugee fleeing dimensions", "an immigrant from other worlds",
+            "a citizen of a dystopia", "a leader of a apocalypse",
+            "a follower of a dark god", "a rebel against fate",
+            "a revolutionary changing reality", "a reformer fixing the universe",
+            "a innovator creating horrors", "a inventor building monsters",
+            "a entrepreneur selling souls", "a investor funding evils",
+            "a manager overseeing chaos", "a employee serving demons",
+            "a customer buying curses", "a seller providing doom",
+            "a producer making nightmares", "a consumer experiencing terror",
+            "a creator making monsters", "a critic reviewing horrors",
+            "a fan supporting villains", "a star shining darkness",
+            "a hero failing to save", "a villain succeeding in doom",
+            "a victim suffering eternally", "a survivor enduring hell",
+            "a winner gaining nothing", "a loser losing everything",
+            "a champion of darkness", "a contender for doom",
+            "a master of evil", "a student of horror",
+            "a mentor of monsters", "a protege of demons",
+            "a friend of foes", "an enemy of all",
+            "a ally of none", "a rival of self",
+            "a partner in crime", "a spouse in death",
+            "a parent of monsters", "a child of doom",
+            "a sibling of shadows", "a cousin of curses",
+            "a aunt of agony", "a uncle of unrest",
+            "a grandparent of grief", "a grandchild of gloom",
+            "a neighbor of nightmares", "a stranger of terror",
+            "a acquaintance of anxiety", "a friend of fear",
+            "a lover of loss", "a hater of hope",
+            "a believer in doom", "a skeptic of salvation",
+            "a optimist of oblivion", "a pessimist of peace",
+            "a energizer of entropy", "a fatiguer of existence",
+            "a clarifier of confusion", "a confuser of clarity",
+            "a focuser of chaos", "a distractor of order",
+            "a calmer of storms", "a stormer of calms",
+            "a silencer of noises", "a noiser of silences",
+            "a orderer of chaos", "a chaoser of orders",
+            "a structurer of randomness", "a randomizer of structures",
+            "a routiner of novelties", "a novelizer of routines",
+            "a familiarizer of strangers", "a strangerize of familiars",
+            "a homemaker of adventures", "a adventurer of homes",
+            "a safer of dangers", "a dangerer of safes",
+            "a warmer of colds", "a colder of warms",
+            "a lighter of darks", "a darker of lights",
+            "a sounder of silences", "a silencer of sounds",
+            "a sweeter of sours", "a sourer of sweets",
+            "a flowerer of stenches", "a stencher of flowers",
+            "a silkier of roughs", "a rougher of silks",
+            "a beautifier of uglies", "a uglifier of beauties",
+            "a lover of pains", "a painer of loves",
+            "a winner of losses", "a loser of wins",
+            "a happier of saddens", "a saddener of happies",
+            "a meaninger of nonsense", "a nonsenser of meanings",
+            "a purposer of pointlessness", "a pointlesser of purposes",
+            "a director of confusions", "a confuser of directions",
+            "a goaler of misses", "a misser of goals",
+            "a hitter of errors", "a errorer of hits",
+            "a corrector of mistakes", "a mistaker of corrections",
+            "a improver of degradations", "a degrader of improvements",
+            "a saver of deletions", "a deleter of saves",
+            "a maker of destructions", "a destroyer of makes",
+            "a builder of demolitions", "a demolisher of builds",
+            "a grower of shrinks", "a shrinker of grows",
+            "a expander of contractions", "a contractor of expands",
+            "a inflater of deflations", "a deflater of inflates",
+            "a adder of subtractions", "a subtracter of adds",
+            "a multiplier of divisions", "a divider of multiplies",
+            "a pluser of minuses", "a minuser of pluses",
+            "a gooder of bads", "a badder of goods",
+            "a okayer of extremes", "a extremer of okays",
+            "a meher of moderates", "a moderater of mehs",
+            "a whoaer of intensities", "a intenser of whoas",
+            "a hmmmer of milds", "a milder of hmms",
+            "a yeaher of strengths", "a stronger of yeahs",
+            "a nayer of weaknesses", "a weaker of nays",
+            "a yepper of powers", "a powerfuler of yeps",
+            "a noper of powerlessnesses", "a powerlesser of nopes",
+            "a yeser of effectivenesses", "a effectiver of yeses",
+            "a noer of ineffectivenesses", "a ineffectiver of nos",
+            "a quicker of efficiencies", "a efficiencer of quicks",
+            "a slower of inefficiencies", "a inefficiencer of slows",
+            "a zoomer of fasts", "a faster of zooms",
+            "a crawler of slownesses", "a slowerrer of crawls",
+            "a dasher of quicks", "a quicker of dashes",
+            "a dragger of sluggishnesses", "a sluggisher of drags",
+            "a rusher of rapids", "a rapider of rushes",
+            "a stroller of leisurelies", "a leisurelier of strolls",
+            "a sprinter of hurries", "a hurrier of sprints",
+            "a chiller of relaxes", "a relaxer of chills",
+            "a panicker of stresses", "a stresser of panics",
+            "a zener of calms", "a calmer of zens",
+            "a worrier of anxieties", "a anxietier of worries",
+            "a peacer of peaces", "a peacer of peaces",
+            "a chaoser of chaos", "a chaoser of chaos",
+            "a orderer of orders", "a orderer of orders",
+            "a messer of messes", "a messer of messes",
+            "a cleaner of cleans", "a cleaner of cleans",
+            "a dirter of dirts", "a dirter of dirts",
+            "a purer of purs", "a purer of purs",
+            "a corrupter of corruptions", "a corrupter of corruptions",
+            "a holier of holies", "a holier of holies",
+            "a unholier of unholies", "a unholier of unholies",
+            "a sacrerer of sacreds", "a sacrerer of sacreds",
+            "a profaner of profanes", "a profaner of profanes",
+            "a diviner of divines", "a diviner of divines",
+            "a mortaler of mortals", "a mortaler of mortals",
+            "a eterner of eternals", "a eterner of eternals",
+            "a temporarer of temporaries", "a temporarer of temporaries",
+            "a permanenter of permanents", "a permanenter of permanents",
+            "a transierter of transients", "a transierter of transients",
+            "a laster of lasts", "a laster of lasts",
+            "a fleeter of fleets", "a fleeter of fleets",
+            "a endurer of endures", "a endurer of endures",
+            "a vanisher of vanishes", "a vanisher of vanishes",
+            "a remainer of remains", "a remainer of remains",
+            "a disappearer of disappears", "a disappearer of disappears",
+            "a appearer of appears", "a appearer of appears",
+            "a exister of exists", "a exister of exists",
+            "a beer of bes", "a beer of bes",
+            "a nother of nothings", "a nother of nothings",
+            "a somether of somethings", "a somether of somethings",
+            "a everyther of everythings", "a everyther of everythings",
+            "a anyther of anythings", "a anyther of anythings",
+            "a nothingneser of nothingnesses", "a nothingneser of nothingnesses"
+        ],
+        emotions: [
+            "an overwhelming, primal terror", "a fleeting moment of divine, blinding grace",
+            "a deep, ancient sorrow that predates my birth", "a sudden, intoxicating surge of bloodlust",
+            "a strange sense of prophetic, terrifying calm", "the creeping dread of being watched",
+            "the euphoria of forbidden magic", "the nausea of reality shifting",
+            "the rage of a betrayed oath", "the despair of a lost soul",
+            "the confusion of fragmented memories", "the clarity of a lucid nightmare",
+            "the hunger of a void", "the emptiness of a hollow heart",
+            "the weight of a curse", "the lightness of a freed spirit",
+            "the coldness of death", "the heat of hellfire",
+            "the darkness of the abyss", "the brightness of a dying star",
+            "the silence of the grave", "the noise of a thousand screams",
+            "the stillness of a statue", "the movement of a shadow",
+            "the solidity of stone", "the fluidity of water",
+            "the hardness of iron", "the softness of flesh",
+            "the sharpness of a blade", "the dullness of a rusted tool",
+            "the brightness of a light", "the darkness of a shadow",
+            "the loudness of a thunder", "the quietness of a whisper",
+            "the sweetness of a lie", "the bitterness of a truth",
+            "the warmth of a fake smile", "the coldness of a real tear",
+            "the happiness of a illusion", "the sadness of a reality",
+            "the love of a monster", "the hate of a angel",
+            "the hope of a doomed man", "the despair of a saved man",
+            "the courage of a coward", "the fear of a hero",
+            "the strength of a weakling", "the weakness of a giant",
+            "the wisdom of a fool", "the foolishness of a wise man",
+            "the beauty of a ugly thing", "the ugliness of a beautiful thing",
+            "the good of a evil act", "the evil of a good act",
+            "the right of a wrong choice", "the wrong of a right choice",
+            "the truth of a lie", "the lie of a truth",
+            "the life of a death", "the death of a life",
+            "the beginning of a end", "the end of a beginning",
+            "the start of a finish", "the finish of a start",
+            "the open of a close", "the close of a open",
+            "the up of a down", "the down of a up",
+            "the left of a right", "the right of a left",
+            "the front of a back", "the back of a front",
+            "the inside of a outside", "the outside of a inside",
+            "the top of a bottom", "the bottom of a top",
+            "the high of a low", "the low of a high",
+            "the fast of a slow", "the slow of a fast",
+            "the hot of a cold", "the cold of a hot",
+            "the wet of a dry", "the dry of a wet",
+            "the hard of a soft", "the soft of a hard",
+            "the heavy of a light", "the light of a heavy",
+            "the big of a small", "the small of a big",
+            "the long of a short", "the short of a long",
+            "the wide of a narrow", "the narrow of a wide",
+            "the thick of a thin", "the thin of a thick",
+            "the deep of a shallow", "the shallow of a deep",
+            "the high of a low", "the low of a high",
+            "the rich of a poor", "the poor of a rich",
+            "the young of a old", "the old of a young",
+            "the new of a used", "the used of a new",
+            "the clean of a dirty", "the dirty of a clean",
+            "the full of a empty", "the empty of a full",
+            "the whole of a part", "the part of a whole",
+            "the all of a none", "the none of a all",
+            "the every of a some", "the some of a every",
+            "the many of a few", "the few of a many",
+            "the most of a least", "the least of a most",
+            "the best of a worst", "the worst of a best",
+            "the first of a last", "the last of a first",
+            "the early of a late", "the late of a early",
+            "the soon of a never", "the never of a soon",
+            "the always of a sometimes", "the sometimes of a always",
+            "the often of a rarely", "the rarely of a often",
+            "the usually of a unusually", "the unusually of a usually",
+            "the normally of a abnormally", "the abnormally of a normally",
+            "the typically of a atypically", "the atypically of a typically",
+            "the generally of a specifically", "the specifically of a generally",
+            "the broadly of a narrowly", "the narrowly of a broadly",
+            "the widely of a locally", "the locally of a widely",
+            "the globally of a regionally", "the regionally of a globally",
+            "the universally of a particularly", "the particularly of a universally",
+            "the absolutely of a relatively", "the relatively of a absolutely",
+            "the completely of a partially", "the partially of a completely",
+            "the totally of a somewhat", "the somewhat of a totally",
+            "the entirely of a partly", "the partly of a entirely",
+            "the fully of a half", "the half of a fully",
+            "the quarter of a three quarters", "the three quarters of a quarter",
+            "the fifth of a four fifths", "the four fifths of a fifth",
+            "the sixth of a five sixths", "the five sixths of a sixth",
+            "the seventh of a six sevenths", "the six sevenths of a seventh",
+            "the eighth of a seven eighths", "the seven eighths of a eighth",
+            "the ninth of a eight ninths", "the eight ninths of a ninth",
+            "the tenth of a nine tenths", "the nine tenths of a tenth",
+            "the hundredth of a ninety nine hundredths", "the ninety nine hundredths of a hundredth",
+            "the thousandth of a nine hundred ninety nine thousandths", "the nine hundred ninety nine thousandths of a thousandth",
+            "the millionth of a nine hundred ninety nine thousand nine hundred ninety nine millionths", "the nine hundred ninety nine thousand nine hundred ninety nine millionths of a millionth",
+            "the billionth of a nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine billionths", "the nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine billionths of a billionth",
+            "the trillionth of a nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine trillionths", "the nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine trillionths of a trillionth",
+            "the quadrillionth of a nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine quadrillionths", "the nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine quadrillionths of a quadrillionth",
+            "the quintillionth of a nine hundred ninety nine quadrillion nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine quintillionths", "the nine hundred ninety nine quadrillion nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine quintillionths of a quintillionth",
+            "the sextillionth of a nine hundred ninety nine quintillion nine hundred ninety nine quadrillion nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine sextillionths", "the nine hundred ninety nine quintillion nine hundred ninety nine quadrillion nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine sextillionths of a sextillionth",
+            "the septillionth of a nine hundred ninety nine sextillion nine hundred ninety nine quintillion nine hundred ninety nine quadrillion nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine septillionths", "the nine hundred ninety nine sextillion nine hundred ninety nine quintillion nine hundred ninety nine quadrillion nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine septillionths of a septillionth",
+            "the octillionth of a nine hundred ninety nine septillion nine hundred ninety nine sextillion nine hundred ninety nine quintillion nine hundred ninety nine quadrillion nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine octillionths", "the nine hundred ninety nine septillion nine hundred ninety nine sextillion nine hundred ninety nine quintillion nine hundred ninety nine quadrillion nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine octillionths of a octillionth",
+            "the nonillionth of a nine hundred ninety nine octillion nine hundred ninety nine septillion nine hundred ninety nine sextillion nine hundred ninety nine quintillion nine hundred ninety nine quadrillion nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine nonillionths", "the nine hundred ninety nine octillion nine hundred ninety nine septillion nine hundred ninety nine sextillion nine hundred ninety nine quintillion nine hundred ninety nine quadrillion nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine nonillionths of a nonillionth",
+            "the decillionth of a nine hundred ninety nine nonillion nine hundred ninety nine octillion nine hundred ninety nine septillion nine hundred ninety nine sextillion nine hundred ninety nine quintillion nine hundred ninety nine quadrillion nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine decillionths", "the nine hundred ninety nine nonillion nine hundred ninety nine octillion nine hundred ninety nine septillion nine hundred ninety nine sextillion nine hundred ninety nine quintillion nine hundred ninety nine quadrillion nine hundred ninety nine trillion nine hundred ninety nine billion nine hundred ninety nine million nine hundred ninety nine thousand nine hundred ninety nine decillionths of a decillionth"
+        ]
+    };
+
+    // --- TEMPLATES ---
+
+    const mundaneTemplates = [
+        "The mists clear to reveal a simple truth. I am {scene}. The air carries {sensory}. I feel {emotion}. Nearby, {figure} goes about their daily tasks. [VISION STABLE. ARCHIVING MUNDANE FRAGMENT.]",
+        "A clear fragment surfaces from the dream. I am {scene}. I notice {sensory}. {emotion} settles over me as I watch {figure}. [MEMORY ARCHIVE: PEACEFUL. NO ANOMALIES DETECTED.]",
+        "The aether ripples gently. I remember {scene}. {sensory} brings a sense of {emotion}. I see {figure} in the periphery. [RESONANCE HARMONIOUS. PROCEEDING.]"
+    ];
+
+    const anomalousTemplates = [
+        "The mists part violently. I am {scene}. The air is thick with {sensory}. I feel {emotion}. Suddenly, {figure} emerges from the shadows. {corruption}",
+        "Fragment recovered from the deep aether. {sensory} overwhelms the senses. I am standing beside {figure}, and I realize we are {scene}. {emotion} washes over me. {corruption}",
+        "Arcane resonance failing. {figure} is speaking, but I only hear {sensory}. We are {scene}. I am consumed by {emotion}. {corruption}",
+        "Deep mind delve. I remember {scene}. {sensory} triggers a cascade of {emotion}. {figure} is watching me from the treeline. {corruption}"
+    ];
+
+    const subjects = [
+        "Captive of the Sunken Spire", "The Ashen Knight", "Exiled Seer of Oakhaven", 
+        "Heretic Scholar", "Wandering Bard of the Lost Court", "The Hound of Valerius",
+        "Miller's Daughter", "Veteran of the Border Wars", "Apprentice to the Alchemist"
+    ];
+
+    // --- LOGIC ---
+
+    function pick(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function generateSubjectID() {
+        document.getElementById('subject-id').innerText = pick(subjects);
+    }
+
+    function typeWriter(text, element, speed = 25) {
+        return new Promise(resolve => {
+            let i = 0;
+            element.innerHTML = "";
+            
+            function type() {
+                if (i < text.length) {
+                    let char = text.charAt(i);
+                    
+                    if (char === '[') {
+                        let endBracket = text.indexOf("]", i);
+                        if (endBracket !== -1) {
+                            let corruptText = text.substring(i, endBracket + 1);
+                            // If it contains specific keywords, make it red. Otherwise, keep it normal blue.
+                            if (corruptText.includes("WARNING") || corruptText.includes("ERROR") || corruptText.includes("ALERT") || corruptText.includes("CORRUPTED") || corruptText.includes("DROPOUT")) {
+                                element.innerHTML += `<span class="corruption">${corruptText}</span>`;
+                            } else {
+                                element.innerHTML += corruptText; // Normal system text
+                            }
+                            i = endBracket + 1;
+                            setTimeout(type, speed);
+                            return; 
+                        }
+                    }
+                    
+                    element.innerHTML += char;
+                    i++;
+                    setTimeout(type, speed);
+                } else {
+                    resolve();
+                }
+            }
+            type();
+        });
+    }
+
+    async function extractMemory() {
+        const btn = document.getElementById('extract-btn');
+        const output = document.getElementById('memory-output');
+        const status = document.getElementById('status-text');
+        const sync = document.getElementById('sync-status');
+
+        btn.disabled = true;
+        generateSubjectID();
+        sync.innerText = "TETHERING...";
+        status.innerText = "Bypassing mental wards and hexes...";
+        
+        await new Promise(r => setTimeout(r, 1500));
+        
+        sync.innerText = "SCRYING";
+        status.innerText = "Sifting through the aether...";
+        
+        await new Promise(r => setTimeout(r, 1000));
+
+        // --- THE 80/20 SPLIT ---
+        // 20% chance (Math.random() < 0.20) to get an anomalous/weird memory
+        let isAnomalous = Math.random() < 0.20; 
+        
+        let template, dataPool;
+
+        if (isAnomalous) {
+            template = pick(anomalousTemplates);
+            dataPool = anomalousData;
+            status.innerText = "Warning: Resonance spike detected...";
+        } else {
+            template = pick(mundaneTemplates);
+            dataPool = mundaneData;
+            status.innerText = "Filtering mundane life echoes...";
+        }
+
+        // Build the memory string
+        let memory = template
+            .replace("{sensory}", pick(dataPool.sensory))
+            .replace("{scene}", pick(dataPool.scenes))
+            .replace("{figure}", pick(dataPool.figures))
+            .replace("{emotion}", pick(dataPool.emotions));
+
+        // Only replace corruption if it's an anomalous memory (since mundane templates don't have the placeholder)
+        if (isAnomalous) {
+            memory = memory.replace("{corruption}", pick(dataPool.corruptions));
+        }
+
+        await typeWriter(memory, output, 20);
+
+        sync.innerText = "DORMANT";
+        status.innerText = "Vision faded. Awaiting next command.";
+        btn.disabled = false;
+    }
+
+    generateSubjectID();
+</script>
+
+</body>
+</html>

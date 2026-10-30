@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campaign Time Tracker</title>
+  <style>
+    :root {
+      --bg: #0b1120; --card: #1e293b; --text: #e2e8f0; --accent: #3b82f6;
+      --accent-hover: #2563eb; --border: #334155; --muted: #94a3b8;
+      --event: #f59e0b; --event-bg: #451a03;
+      --today: #10b981; --today-bg: #064e3b;
+      --week-a: #0f172a; --week-b: #1a2638;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 1.5rem; max-width: 1200px; margin: 0 auto; line-height: 1.5; }
+    h1 { text-align: center; margin-bottom: 1.5rem; font-size: 2rem; }
+    
+    .date-display { text-align: center; font-size: 1.5rem; margin-bottom: 1.5rem; padding: 1rem; background: var(--card); border-radius: 8px; border: 1px solid var(--border); }
+    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    input, textarea, select { width: 100%; padding: 0.75rem; background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 6px; font-size: 1rem; }
+    input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); border-color: transparent; }
+    textarea { grid-column: 1 / -1; resize: vertical; min-height: 60px; }
+    button { padding: 0.75rem 1.5rem; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 1rem; transition: all 0.2s; }
+    button:hover { background: var(--accent-hover); }
+    .btn-secondary { background: var(--border); }
+    .btn-secondary:hover { background: #475569; }
+    .btn-small { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+    .btn-warn { background: #d97706; }
+    .btn-warn:hover { background: #b45309; }
+    .btn-danger { background: #dc2626; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-success { background: #059669; }
+    .btn-success:hover { background: #047857; }
+    
+    .actions { display: flex; gap: 0.75rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: center; }
+    .panel { background: var(--card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1.5rem; }
+    
+    /* Collapsible Panel Styles */
+    .collapsible-header {
+      width: 100%; padding: 0.75rem 1rem; background: transparent; border: none;
+      color: var(--accent); font-size: 1.25rem; font-weight: 600; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center; text-align: left;
+    }
+    .collapsible-header:hover { color: var(--accent-hover); }
+    .chevron { transition: transform 0.3s ease; display: inline-block; }
+    .collapsible-body {
+      max-height: 1200px; overflow: hidden; transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.2s ease;
+      opacity: 1; padding: 0.5rem 0 0 0;
+    }
+    .collapsible-body.collapsed { max-height: 0; opacity: 0; padding: 0; }
+    
+    .calendar-container { overflow-x: auto; margin-top: 1rem; }
+    .calendar-grid { display: grid; grid-template-columns: 60px repeat(28, minmax(28px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); min-width: 900px; }
+    .calendar-header { background: var(--card); padding: 0.5rem; text-align: center; font-weight: 600; font-size: 0.75rem; color: var(--muted); }
+    .month-label { background: var(--card); padding: 0.5rem; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; color: var(--accent); }
+    
+    .calendar-day { 
+      background: var(--week-a); padding: 0.4rem; text-align: center; font-size: 0.75rem; cursor: pointer; 
+      transition: all 0.15s; position: relative; min-height: 36px; display: flex; align-items: center; justify-content: center; 
+    }
+    .calendar-day.week-b { background: var(--week-b); }
+    .calendar-day:hover { background: rgba(59, 130, 246, 0.25); }
+    .calendar-day.today { background: var(--today-bg) !important; color: var(--today); font-weight: 700; }
+    .calendar-day.has-event::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: var(--event); border-radius: 50%; }
+    .calendar-day.today.has-event::after { background: var(--today); }
+    
+    .event-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .event-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: rgba(255,255,255,0.03); border-radius: 6px; }
+    .event-meta { font-size: 0.9rem; color: var(--muted); }
+    .event-name { font-weight: 600; color: var(--event); }
+    .days-until { background: var(--event-bg); color: var(--event); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+    .days-until.today { background: #064e3b; color: var(--today); }
+    
+    .log-section { margin-top: 1.5rem; }
+    .log-entry { background: var(--card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 0.75rem; }
+    .log-meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.85rem; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
+    .log-date { font-weight: 600; color: var(--accent); }
+    .log-notes { margin-top: 0.5rem; white-space: pre-wrap; }
+    .log-event-tag { display: inline-block; background: var(--event-bg); color: var(--event); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.8rem; margin-top: 0.4rem; }
+    
+    .empty-state { text-align: center; color: var(--muted); padding: 2rem; }
+    .reset-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 10; }
+    .reset-modal.active { display: flex; }
+    .modal-content { background: var(--card); padding: 2rem; border-radius: 8px; border: 1px solid var(--border); text-align: center; max-width: 400px; }
+    .edit-panel { display: none; margin-bottom: 1rem; padding: 1rem; background: var(--card); border-radius: 8px; border: 1px solid var(--border); }
+    .edit-panel.active { display: block; }
+    .toast { position: fixed; bottom: 2rem; right: 2rem; padding: 1rem 1.5rem; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 20; animation: slideIn 0.3s ease; }
+    .toast.success { border-left: 4px solid var(--today); }
+    .toast.error { border-left: 4px solid #dc2626; }
+    @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .hidden-input { display: none; }
+  </style>
+</head>
+<body>
+  <h1>📜 Campaign Time Tracker</h1>
+  <div class="date-display">Current Date: <span id="current-date">Year 1, Month 1, Day 1</span></div>
+
+  <form id="time-form">
+    <div class="controls">
+      <input type="number" id="days" placeholder="Days (+)" min="0" value="0">
+      <input type="number" id="weeks" placeholder="Weeks (+)" min="0" value="0">
+      <input type="number" id="months" placeholder="Months (+)" min="0" value="0">
+      <textarea id="notes" placeholder="Session notes, events, downtime actions..."></textarea>
+    </div>
+    <div class="actions">
+      <button type="submit">⏱️ Advance Time</button>
+      <button type="button" class="btn-secondary" id="edit-date-btn">📝 Set Exact Date</button>
+      <button type="button" class="btn-secondary" id="clear-logs-btn">🗑️ Clear Logs</button>
+      <button type="button" class="btn-warn" id="reset-all-btn">⚠️ Reset All</button>
+      <button type="button" class="btn-success" id="export-btn">📥 Export JSON</button>
+      <button type="button" class="btn-secondary" id="import-btn">📤 Import JSON</button>
+      <button type="button" class="btn-secondary" onclick="window.location.href='index.html';">🏠 Index</button>
+      <input type="file" id="import-file" class="hidden-input" accept=".json">
+    </div>
+  </form>
+
+  <div class="edit-panel" id="edit-date-panel">
+    <h2 style="font-size: 1.25rem; margin-bottom: 0.75rem; color: var(--accent);">Set Exact Date</h2>
+    <div class="controls" style="margin-top:0.5rem;">
+      <input type="number" id="set-year" placeholder="Year" min="1">
+      <input type="number" id="set-month" placeholder="Month (1-13)" min="1" max="13">
+      <input type="number" id="set-day" placeholder="Day (1-28)" min="1" max="28">
+    </div>
+    <button id="confirm-set-btn" style="margin-top:0.5rem;">Apply Date</button>
+  </div>
+
+  <!-- CALENDAR MOVED TO TOP -->
+  <div class="panel">
+    <h2 style="font-size: 1.25rem; margin-bottom: 0.75rem; color: var(--accent);">📅 Visual Calendar (13 Months × 28 Days)</h2>
+    <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+      <span><span style="display:inline-block; width:12px; height:12px; background:var(--week-a); border-radius:2px; margin-right:0.5rem; vertical-align:middle;"></span>Week 1/3</span>
+      <span><span style="display:inline-block; width:12px; height:12px; background:var(--week-b); border-radius:2px; margin-right:0.5rem; vertical-align:middle;"></span>Week 2/4</span>
+      <span><span style="display:inline-block; width:12px; height:12px; background:var(--today-bg); border-radius:2px; margin-right:0.5rem; vertical-align:middle;"></span>Current</span>
+      <span><span style="display:inline-block; width:12px; height:12px; background:var(--bg); border:1px solid var(--event); border-radius:2px; margin-right:0.5rem; vertical-align:middle;"></span>Has Event</span>
+      <span><span style="display:inline-block; width:12px; height:12px; background:rgba(59, 130, 246, 0.25); border-radius:2px; margin-right:0.5rem; vertical-align:middle;"></span>Hover/Click</span>
+    </div>
+    <div class="calendar-container" id="calendar-container"></div>
+  </div>
+
+  <!-- COLLAPSIBLE EVENTS PANEL MOVED BENEATH CALENDAR -->
+  <div class="panel">
+    <button type="button" class="collapsible-header" id="toggle-events-btn">
+      <span>📅 Fixed Dates & Holy Days</span>
+      <span class="chevron">▼</span>
+    </button>
+    <div id="events-content" class="collapsible-body">
+      <div id="event-form" style="margin-bottom:1rem; padding:0.5rem; background:rgba(255,255,255,0.03); border-radius:6px;">
+        <div class="controls">
+          <input type="number" id="ev-month" placeholder="Month (1-13)" min="1" max="13">
+          <input type="number" id="ev-day" placeholder="Day (1-28)" min="1" max="28">
+          <input type="text" id="ev-name" placeholder="Event Name">
+          <input type="text" id="ev-desc" placeholder="Description (optional)">
+        </div>
+        <button id="add-event-btn" class="btn-secondary btn-small" style="margin-top:0.5rem;">➕ Add Event</button>
+      </div>
+      <div id="event-list-container">
+        <div class="empty-state">No fixed dates added yet. Add holy days, festivals, or campaign milestones above.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="upcoming-panel" style="display:none;">
+    <h2 style="font-size: 1.25rem; margin-bottom: 0.75rem; color: var(--accent);">⏳ Upcoming Events (Next 28 Days)</h2>
+    <div id="upcoming-list" class="event-list"></div>
+  </div>
+
+  <div class="log-section">
+    <h2 style="font-size: 1.25rem; margin-bottom: 0.75rem; color: var(--accent);">📖 Time Log</h2>
+    <div id="log-container"><div class="empty-state">No time advances recorded yet.</div></div>
+  </div>
+
+  <div class="reset-modal" id="reset-modal">
+    <div class="modal-content">
+      <h3 id="reset-title">Confirm Reset</h3>
+      <p id="reset-desc" style="margin:1rem 0; color:var(--muted);"></p>
+      <button id="confirm-reset">Yes, Confirm</button>
+      <button id="cancel-reset" class="btn-secondary" style="margin-left:0.5rem;">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'campaign_time_tracker_v9';
+    const DAYS_PER_MONTH = 28;
+    const MONTHS_PER_YEAR = 13;
+    const DAYS_PER_YEAR = DAYS_PER_MONTH * MONTHS_PER_YEAR;
+
+    const DEFAULT_STATE = { year: 1, month: 1, day: 1, logs: [], events: [] };
+    let state = { ...DEFAULT_STATE };
+    let pendingResetType = null;
+
+    function load() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          state = { ...DEFAULT_STATE, ...parsed, logs: parsed.logs || [], events: parsed.events || [] };
+        }
+      } catch (e) { console.error('Failed to load state', e); }
+      renderAll();
+      
+      // Restore collapsible state
+      if (localStorage.getItem('campaign_events_collapsed') === 'true') {
+        document.getElementById('events-content').classList.add('collapsed');
+        document.querySelector('#toggle-events-btn .chevron').style.transform = 'rotate(-90deg)';
+      }
+    }
+
+    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+    function renderAll() {
+      document.getElementById('current-date').textContent = `Year ${state.year}, Month ${state.month}, Day ${state.day}`;
+      renderCalendar();
+      renderEvents();
+      renderUpcoming();
+      renderLogs();
+    }
+
+    function renderCalendar() {
+      const container = document.getElementById('calendar-container');
+      let html = '<div class="calendar-grid">';
+      html += '<div class="calendar-header">Month</div>';
+      for (let d = 1; d <= 28; d++) html += `<div class="calendar-header">${d}</div>`;
+      for (let m = 1; m <= 13; m++) {
+        html += `<div class="month-label">M${m}</div>`;
+        for (let d = 1; d <= 28; d++) {
+          const weekClass = Math.floor((d - 1) / 7) % 2 === 0 ? 'week-a' : 'week-b';
+          const isToday = (state.month === m && state.day === d);
+          const hasEvent = state.events.some(ev => ev.month === m && ev.day === d);
+          const classes = ['calendar-day', weekClass];
+          if (isToday) classes.push('today');
+          if (hasEvent) classes.push('has-event');
+          html += `<div class="${classes.join(' ')}" onclick="jumpToDate(${m}, ${d})" title="${isToday ? 'Current Date - ' : ''}${hasEvent ? state.events.filter(e => e.month === m && e.day === d).map(e => e.name).join(', ') : 'No events'}">${isToday ? d : ''}</div>`;
+        }
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function jumpToDate(month, day) {
+      if (state.month === month && state.day === day) return;
+      const from = `Y${state.year} M${state.month} D${state.day}`;
+      state.month = month; state.day = day;
+      state.logs.unshift({ from, to: `Y${state.year} M${month} D${day}`, daysAdvanced: 0, notes: `[Jumped to date]`, ts: Date.now(), landedEvents: [] });
+      const landed = state.events.filter(ev => ev.month === month && ev.day === day);
+      if (landed.length > 0) state.logs[0].landedEvents = landed.map(ev => ev.name);
+      save(); renderAll();
+      showToast(`Jumped to Year ${state.year}, Month ${month}, Day ${day}`, 'success');
+    }
+
+    function renderEvents() {
+      const container = document.getElementById('event-list-container');
+      if (state.events.length === 0) {
+        container.innerHTML = '<div class="empty-state">No fixed dates added yet.</div>';
+        return;
+      }
+      container.innerHTML = state.events.map((ev, i) => `
+        <div class="event-item">
+          <div>
+            <span class="event-name">${escapeHtml(ev.name)}</span>
+            <span class="event-meta"> • M${ev.month}, D${ev.day}</span>
+            ${ev.desc ? `<div class="event-meta">${escapeHtml(ev.desc)}</div>` : ''}
+          </div>
+          <button class="btn-danger btn-small" onclick="deleteEvent(${i})">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function renderUpcoming() {
+      const panel = document.getElementById('upcoming-panel');
+      const list = document.getElementById('upcoming-list');
+      if (state.events.length === 0) { panel.style.display = 'none'; return; }
+
+      const upcoming = state.events
+        .map(ev => ({ ...ev, daysUntil: daysUntil(ev.month, ev.day) }))
+        .filter(ev => ev.daysUntil <= 28)
+        .sort((a, b) => a.daysUntil - b.daysUntil);
+
+      if (upcoming.length === 0) { panel.style.display = 'none'; return; }
+
+      panel.style.display = 'block';
+      list.innerHTML = upcoming.map(ev => {
+        const isToday = ev.daysUntil === 0;
+        return `<div class="event-item"><div><span class="event-name">${escapeHtml(ev.name)}</span><span class="event-meta"> • M${ev.month}, D${ev.day}</span></div><span class="days-until ${isToday ? 'today' : ''}">${isToday ? 'Today' : ev.daysUntil + ' days'}</span></div>`;
+      }).join('');
+    }
+
+    function daysUntil(targetM, targetD) {
+      const currentAbs = (state.month - 1) * DAYS_PER_MONTH + (state.day - 1);
+      const targetAbs = (targetM - 1) * DAYS_PER_MONTH + (targetD - 1);
+      let diff = targetAbs - currentAbs;
+      if (diff < 0) diff += DAYS_PER_YEAR;
+      return diff;
+    }
+
+    function advanceTime() {
+      const days = parseInt(document.getElementById('days').value) || 0;
+      const weeks = parseInt(document.getElementById('weeks').value) || 0;
+      const months = parseInt(document.getElementById('months').value) || 0;
+      const notes = document.getElementById('notes').value.trim();
+      if (days === 0 && weeks === 0 && months === 0) return;
+
+      const from = `Y${state.year} M${state.month} D${state.day}`;
+      let d = state.day + days + (weeks * 7);
+      let m = state.month + months;
+      let y = state.year;
+
+      if (d > DAYS_PER_MONTH) { const extra = Math.floor((d - 1) / DAYS_PER_MONTH); m += extra; d -= extra * DAYS_PER_MONTH; }
+      if (m > MONTHS_PER_YEAR) { const extra = Math.floor((m - 1) / MONTHS_PER_YEAR); y += extra; m -= extra * MONTHS_PER_YEAR; }
+
+      const to = `Y${y} M${m} D${d}`;
+      state.logs.unshift({ from, to, daysAdvanced: days + (weeks * 7), notes, ts: Date.now(), landedEvents: [] });
+      state.year = y; state.month = m; state.day = d;
+      const landed = state.events.filter(ev => ev.month === m && ev.day === d);
+      if (landed.length > 0) state.logs[0].landedEvents = landed.map(ev => ev.name);
+      save(); renderAll();
+      document.getElementById('days').value = 0; document.getElementById('weeks').value = 0;
+      document.getElementById('months').value = 0; document.getElementById('notes').value = '';
+    }
+
+    function setExactDate() {
+      const y = parseInt(document.getElementById('set-year').value);
+      const m = Math.min(MONTHS_PER_YEAR, Math.max(1, parseInt(document.getElementById('set-month').value)));
+      const d = Math.min(DAYS_PER_MONTH, Math.max(1, parseInt(document.getElementById('set-day').value)));
+      if (!y || !m || !d) return;
+      const from = `Y${state.year} M${state.month} D${state.day}`;
+      state.year = y; state.month = m; state.day = d;
+      state.logs.unshift({ from, to: `Y${y} M${m} D${d}`, daysAdvanced: 0, notes: '[Manual Date Set]', ts: Date.now(), landedEvents: [] });
+      save(); renderAll();
+      document.getElementById('edit-date-panel').classList.remove('active');
+    }
+
+    function addEvent() {
+      const m = parseInt(document.getElementById('ev-month').value);
+      const d = parseInt(document.getElementById('ev-day').value);
+      const name = document.getElementById('ev-name').value.trim();
+      const desc = document.getElementById('ev-desc').value.trim();
+      if (!m || !d || !name || m < 1 || m > 13 || d < 1 || d > 28) { showToast('Please enter valid Month (1-13), Day (1-28), and a Name.', 'error'); return; }
+      state.events.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2), month: m, day: d, name, desc });
+      save(); renderAll();
+      document.getElementById('ev-month').value = ''; document.getElementById('ev-day').value = '';
+      document.getElementById('ev-name').value = ''; document.getElementById('ev-desc').value = '';
+      showToast('Event added successfully!', 'success');
+    }
+
+    function deleteEvent(index) { state.events.splice(index, 1); save(); renderAll(); showToast('Event deleted', 'success'); }
+
+    function renderLogs() {
+      const container = document.getElementById('log-container');
+      if (state.logs.length === 0) { container.innerHTML = '<div class="empty-state">No time advances recorded yet.</div>'; return; }
+      container.innerHTML = state.logs.map(log => {
+        const eventTags = log.landedEvents?.map(e => `<span class="log-event-tag">📅 ${escapeHtml(e)}</span>`).join('') || '';
+        return `<div class="log-entry"><div class="log-meta"><span class="log-date">${log.from} → ${log.to}</span><span>${new Date(log.ts).toLocaleString()}</span></div>${log.notes ? `<div class="log-notes">${escapeHtml(log.notes)}</div>` : ''}${eventTags ? `<div style="margin-top:0.5rem;">${eventTags}</div>` : ''}</div>`;
+      }).join('');
+    }
+
+    function exportData() {
+      try {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `campaign_tracker_Y${state.year}M${state.month}D${state.day}.json`;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        showToast('Campaign exported successfully!', 'success');
+      } catch (err) { console.error('Export error:', err); showToast('Failed to export: ' + err.message, 'error'); }
+    }
+
+    function importData(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (!imported || typeof imported !== 'object') throw new Error('Invalid file format');
+          const confirmMsg = `Import data from Year ${imported.year || '?'}, Month ${imported.month || '?'}, Day ${imported.day || '?'}?\n\nThis will ${imported.events?.length > 0 ? `restore ${imported.events.length} events and ` : ''}${imported.logs?.length || 0} log entries.`;
+          if (confirm(confirmMsg)) {
+            state = { year: imported.year || 1, month: imported.month || 1, day: imported.day || 1, logs: Array.isArray(imported.logs) ? imported.logs : [], events: Array.isArray(imported.events) ? imported.events : [] };
+            save(); renderAll();
+            showToast('Campaign imported successfully!', 'success');
+          }
+        } catch (err) { console.error('Import error:', err); showToast('Failed to import file: ' + err.message, 'error'); }
+      };
+      reader.readAsText(file);
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.style.animation = 'slideIn 0.3s ease reverse'; setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+
+    function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+    function openResetModal(type) {
+      pendingResetType = type;
+      document.getElementById('reset-title').textContent = type === 'logs' ? '🗑️ Clear Logs Only?' : '⚠️ Reset Everything?';
+      document.getElementById('reset-desc').textContent = type === 'logs' 
+        ? 'This will delete all time advancement logs but keep your fixed dates and holy days intact.'
+        : 'This will clear all logs, fixed dates, and reset the calendar to Year 1. Cannot be undone.';
+      document.getElementById('confirm-reset').className = type === 'logs' ? 'btn-warn' : 'btn-danger';
+      document.getElementById('reset-modal').classList.add('active');
+    }
+
+    // Event Listeners
+    document.getElementById('time-form').addEventListener('submit', e => { e.preventDefault(); advanceTime(); });
+    document.getElementById('edit-date-btn').addEventListener('click', () => {
+      const panel = document.getElementById('edit-date-panel');
+      panel.classList.toggle('active');
+      if (panel.classList.contains('active')) { document.getElementById('set-year').value = state.year; document.getElementById('set-month').value = state.month; document.getElementById('set-day').value = state.day; }
+    });
+    document.getElementById('confirm-set-btn').addEventListener('click', setExactDate);
+    document.getElementById('add-event-btn').addEventListener('click', addEvent);
+    document.getElementById('clear-logs-btn').addEventListener('click', () => openResetModal('logs'));
+    document.getElementById('reset-all-btn').addEventListener('click', () => openResetModal('all'));
+    document.getElementById('confirm-reset').addEventListener('click', () => {
+      if (pendingResetType === 'logs') { state.logs = []; showToast('Logs cleared', 'success'); }
+      else { state = { year: 1, month: 1, day: 1, logs: [], events: [] }; showToast('Everything reset', 'success'); }
+      save(); renderAll(); document.getElementById('reset-modal').classList.remove('active'); pendingResetType = null;
+    });
+    document.getElementById('cancel-reset').addEventListener('click', () => document.getElementById('reset-modal').classList.remove('active'));
+    document.getElementById('export-btn').addEventListener('click', exportData);
+    document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file').click());
+    document.getElementById('import-file').addEventListener('change', (e) => { if (e.target.files.length > 0) { importData(e.target.files[0]); e.target.value = ''; } });
+    
+    // Collapsible Toggle Listener
+    document.getElementById('toggle-events-btn').addEventListener('click', () => {
+      const body = document.getElementById('events-content');
+      const chevron = document.querySelector('#toggle-events-btn .chevron');
+      body.classList.toggle('collapsed');
+      chevron.style.transform = body.classList.contains('collapsed') ? 'rotate(-90deg)' : 'rotate(0deg)';
+      localStorage.setItem('campaign_events_collapsed', body.classList.contains('collapsed'));
+    });
+
+    load();
+  </script>
+</body>
+</html>

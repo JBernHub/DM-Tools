@@ -1,0 +1,2372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5e Merchant Generator</title>
+    <style>
+	.back-btn {
+  		display: inline-block;
+ 	 	margin-bottom: 15px;
+ 	 	padding: 8px 16px;
+  		background: var(--border);
+  		color: var(--text);
+  		text-decoration: none;
+  		border-radius: 4px;
+  		font-weight: 500;
+  		transition: all 0.2s;
+  		cursor: pointer;
+	}
+	.back-btn:hover {
+  		background: #cbd5e1;
+  		transform: translateY(-1px);
+	}
+        :root {
+            --bg: #f4f5f7;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --atrocious: #92400e;
+            --poor: #b45309;
+            --medium: #ca8a04;
+            --good: #16a34a;
+            --excellent: #0891b2;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 20px; color: var(--primary); }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .btn {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-align: left;
+            color: var(--text);
+        }
+        .btn:hover { background: #f8fafc; border-color: var(--primary); transform: translateY(-1px); }
+        .btn.legendary { border-color: #8b5cf6; color: #7c3aed; background: #f5f3ff; }
+        .btn.random { background: var(--primary); color: white; border: none; font-weight: bold; text-align: center; }
+        .btn.random:hover { background: var(--primary-hover); }
+
+        .result-panel {
+            background: var(--card);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: none;
+        }
+        .result-panel.active { display: block; }
+        
+        .merchant-header {
+            background: #1e293b;
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .merchant-header h2 { font-size: 1.5rem; margin-bottom: 10px; }
+        .stats { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.9rem; }
+        .stat-badge { background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; }
+
+        .quality-section {
+            margin-bottom: 20px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border-left: 4px solid var(--border);
+        }
+        .quality-section.Atrocious { border-color: var(--atrocious); }
+        .quality-section.Poor { border-color: var(--poor); }
+        .quality-section.Medium { border-color: var(--medium); }
+        .quality-section.Good { border-color: var(--good); }
+        .quality-section.Excellent { border-color: var(--excellent); }
+        .quality-title { font-weight: bold; margin-bottom: 8px; display: flex; justify-content: space-between; }
+        
+        .item {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            border-radius: 4px;
+        }
+        .item-name { font-weight: 600; }
+        .item-meta { display: flex; gap: 12px; font-size: 0.85rem; color: var(--text-light); margin-top: 2px; }
+        .item-desc { font-style: italic; font-size: 0.85rem; color: #4b5563; margin-top: 4px; border-top: 1px dashed var(--border); padding-top: 4px; }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+        .page-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .page-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+        .page-info { font-weight: 500; }
+        
+        .note { text-align: center; font-size: 0.8rem; color: var(--text-light); margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="btn-index">📖 Return to Index</a>
+    <div class="container">
+        <h1>🏪 5e Merchant Generator</h1>
+        <div class="menu-grid" id="menu"></div>
+        <div id="result" class="result-panel">
+            <a href="index.html" class="back-btn">← Back to Index</a>
+	    <div id="header"></div>
+            <div id="stock"></div>
+            <div class="pagination">
+                <button class="page-btn" id="prevBtn" onclick="changePage(-1)">← Previous</button>
+                <span class="page-info" id="pageInfo">Page 1 of 1</span>
+                <button class="page-btn" id="nextBtn" onclick="changePage(1)">Next →</button>
+            </div>
+        </div>
+        <p class="note">Dice rolled dynamically</p>
+    </div>
+
+<script>
+// --- DATA ---
+const merchantData = {
+"Alcohol and refreshment": {
+  "Atrocious": [
+    {name:"Ale, inferior", price:"2 cp / mug", qty:"1d4 × 100 mugs", desc:"Flavor will not leave mouth until after next short rest"},
+    {name:"Water", price:"1 cp / cup", qty:"1d4 × 100 cups", desc:"Clean and pure"}
+  ],
+  "Poor": [
+    {name:"Ale, generic", price:"4 cp / mug", qty:"1d4 × 100 mugs", desc:"Whatever ale the merchant has on-hand"},
+    {name:"Ale, non-alcoholic", price:"3 cp / mug", qty:"1d4 × 50 mugs", desc:"It has (some) flavor, but that’s about it"},
+    {name:"Flask or tankard", price:"2 cp", qty:"1d4 × 15", desc:"Made of either pewter or treated wood"},
+    {name:"Tea, sandberry", price:"5 cp / cup", qty:"1d4 × 10 cups", desc:"Harsh, bitter, and acidic; very hydrating"},
+    {name:"Tea, talktuth", price:"5 cp / cup", qty:"1d4 × 5 cups", desc:"Metallic-tasting and slate grey; an acquired taste"}
+  ],
+  "Medium": [
+    {name:"Ale, Bitter Black", price:"1 sp / mug", qty:"1d4 × 50 mugs", desc:"Stout; rich, bitter, and heavy, served ice-cold"},
+    {name:"Ale, Elminster’s Choice", price:"8 cp / mug", qty:"1d4 × 50 mugs", desc:"Dark ale; smoky taste, named as a marketing gimmick"},
+    {name:"Ale, Golden Sands", price:"8 cp / mug", qty:"1d4 × 50 mugs", desc:"Lager; golden-colored with an aftertaste of citrus"},
+    {name:"Ale, Iriaeboran North", price:"6 cp / mug", qty:"1d4 × 100 mugs", desc:"Amber ale; harsh and bitter, a truly acquired taste"},
+    {name:"Brewer’s supplies", price:"20 gp", qty:"1d4", desc:""},
+    {name:"Cider, Knee-cracker", price:"8 cp / mug", qty:"1d4 × 100 mugs", desc:"Hard apple; cloudy with a strong sweet-sour taste"},
+    {name:"Juice, fruit", price:"3 cp / mug", qty:"1d4 × 25 cups", desc:"Of any variety"},
+    {name:"Mead, common", price:"1 sp / mug", qty:"1d4 × 100 mugs", desc:"A popular spiced honey wine"},
+    {name:"Milk", price:"1 sp / bottle", qty:"1d4 × 5 bottles", desc:"Goat, cow, or other"},
+    {name:"Moonshine", price:"3 sp / bottle", qty:"1d4 × 5 bottles", desc:"Disadv. on saves to avoid intoxication"},
+    {name:"Tea, avlat", price:"1 sp / cup", qty:"1d4 × 10 cups", desc:"A peppery, copper-colored tisane"},
+    {name:"Tea, blackthorn", price:"1 sp / cup", qty:"1d4 × 10 cups", desc:"A savory, earthy tisane that calms an upset stomach"},
+    {name:"Tea, gaeth’ad", price:"5 sp / cup", qty:"1d4 × 5 cups", desc:"Thick and brackish, can be mildly psychoactive"},
+    {name:"Tea, vauge", price:"5 cp / cup", qty:"1d4 × 10 cups", desc:"Grassy and slightly salty, a mellow-tasting tisane"},
+    {name:"Tea, yellowleaf", price:"1 sp / cup", qty:"1d4 × 10 cups", desc:"Robust and pale yellow, can remove clothing stains"},
+    {name:"Wine, Blood Wine", price:"1 gp / bottle", qty:"1d4 × 3 bottles", desc:"Red; lush, full taste with bite; favored by necromancers"},
+    {name:"Wine, common", price:"5 sp / bottle", qty:"1d4 × 5 bottles", desc:"One of many other varieties of simple, cheap wine"},
+    {name:"Wine, Fire Wine", price:"7 sp / bottle", qty:"1d4 × 3 bottles", desc:"Red; very strong and spicy, popular with commoners"},
+    {name:"Yeast", price:"4 cp / lb.", qty:"1d4 × 2 lbs.", desc:""}
+  ],
+  "Good": [
+    {name:"Ale, Dragon’s Breath", price:"2 sp / mug", qty:"1d4 × 25 mugs", desc:"Imperial ale; powerfully alcoholic, strong hoppy flavor"},
+    {name:"Ale, Luiren’s Best", price:"3 sp / mug", qty:"1d4 × 25 mugs", desc:"Imperial stout; black, thick, and sweet halfling brew"},
+    {name:"Ale, Old One’s Eye", price:"2 sp / mug", qty:"1d4 × 25 mugs", desc:"Red ale; pepper and spices give it a prickly aftertaste"},
+    {name:"Ale, Shadowdark", price:"8 cp / mug", qty:"1d4 × 50 mugs", desc:"Brown ale; a full malty taste; popular in many taverns"},
+    {name:"Bead of refreshment", price:"50 gp", qty:"1d4 × 2", desc:""},
+    {name:"Brandy", price:"5 gp / bottle", qty:"1d4 × 2 bottles", desc:""},
+    {name:"Brew, desmodu", price:"1 sp / mug", qty:"1d4 × 25 mugs", desc:"An Underdark favorite; served with a live nightcrawler"},
+    {name:"Cider, Purple Hill", price:"2 sp / mug", qty:"1d4 × 50 mugs", desc:"Hard apple, cherry, plum, and gooseberry blend"},
+    {name:"Cider, Vilhon", price:"2 sp / mug", qty:"1d4 × 50 mugs", desc:"Hot hard apple, cherry, and pear; with cinnamon"},
+    {name:"Cocoa, hot", price:"5 gp / cup", qty:"1d4 × 10 cups", desc:""},
+    {name:"Mead, tej", price:"3 sp / mug", qty:"1d4 × 50 mugs", desc:"An imported mead made with jungle spices"},
+    {name:"Rum", price:"8 gp / bottle", qty:"1d4 × 2 bottles", desc:""},
+    {name:"Tankard of sobriety", price:"100 gp", qty:"Only 1, ever", desc:""},
+    {name:"Tea, blackroot tal", price:"1 sp / cup", qty:"1d4 × 10 cups", desc:"Bitter cinnamon taste, served hot with honey"},
+    {name:"Tea, chalthorn", price:"2 sp / cup", qty:"1d4 × 10 cups", desc:"Dry and chalky, makes you unable to taste spicy food"},
+    {name:"Tea, earth dragon’s eye", price:"6 cp / cup", qty:"1d4 × 5 cups", desc:"Black tea; increases movement speed by 5 ft. for 1 hr."},
+    {name:"Tea, jethur", price:"3 gp / cup", qty:"1d4 × 2 cups", desc:"Purple and savory, cures drunkeness for 2 hrs."},
+    {name:"Tea, long jing", price:"5 gp / cup", qty:"1d4 × 5 cups", desc:"Green tea; grants resistance to poison dmg. for 1 hr."},
+    {name:"Tea, meiriath", price:"7 gp / cup", qty:"1d4 × 5 cups", desc:"Mango and citrus taste; popular with the wealthy"},
+    {name:"Tea, milian tal", price:"1 sp / cup", qty:"1d4 × 10 cups", desc:"A purple licorice-tasting tea, served chilled"},
+    {name:"Tea, pale jade", price:"1 gp / cup", qty:"1d4 × 5 cups", desc:"White tea; light, airy, and easy drinking"},
+    {name:"Tea, kaeth", price:"2 gp / cup", qty:"1d4 × 10 cups", desc:"Brewed ground caffeinated beans; also called “coffee”"},
+    {name:"Tea, wild ginger", price:"5 sp / cup", qty:"1d4 × 5 cups", desc:"Spicy and sweet; settles the stomach"},
+    {name:"Tea set", price:"50 gp", qty:"1d4", desc:"Perfect for traditional tea ceremonies"},
+    {name:"Tequila", price:"8 gp / bottle", qty:"1d4 × 2 bottles", desc:""},
+    {name:"Vodka", price:"8 gp / bottle", qty:"1d4 × 3 bottles", desc:""},
+    {name:"Whiskey", price:"5 sp / bottle", qty:"1d4 × 4 bottles", desc:""},
+    {name:"Wine, Arabellan Dry", price:"8 gp / bottle", qty:"1d4 × 3 bottles", desc:"Red; very dry, with berry and woodsy undernotes"},
+    {name:"Wine, Berduskan Dark", price:"15 gp / bottle", qty:"1d4 × 2 bottles", desc:"Red; nearly black; sweet, heavy, and highly alcoholic"},
+    {name:"Wine, fine", price:"10 gp / bottle", qty:"1d4 × 4 bottles", desc:"One of many other varieties of fine wine"},
+    {name:"Wine, Glowfire", price:"13 gp / bottle", qty:"1d4 × 2 bottles", desc:"Chartreuse; glows slightly and tastes of summer pears"},
+    {name:"Wine, Saerloonian Special", price:"16 gp / bottle", qty:"1d4 bottles", desc:"Red; quite complex, full of raspberry and strawberry"},
+    {name:"Wine, Saerloonian Topaz", price:"12 gp / bottle", qty:"1d4 × 2 bottles", desc:"White; dry and surprisingly nutty, with fruit tones"},
+    {name:"Wine, Winter Wine", price:"11 gp / bottle", qty:"1d4 × 2 bottles", desc:"Red; blue-purple, a sweet and spicy dessert wine"}
+  ],
+  "Excellent": [
+    {name:"Ale, Purple Dragon", price:"5 gp / mug", qty:"1d4 × 10 mugs", desc:"Cream ale; with a rich nutty flavor the nobility love"},
+    {name:"Ale, Tanagyr’s Stout", price:"4 gp / mug", qty:"1d4 × 10 mugs", desc:"Imperial Stout; decadently full, complex, and smooth"},
+    {name:"Ale, Thane’s Choice", price:"25 gp / mug", qty:"1d4 × 10 mugs", desc:"Drink a mug: facial hair grows perceptibly"},
+    {name:"Decanter of endless water", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Drinking horn, ivory", price:"7,500 gp", qty:"Only 1, ever", desc:"Bejeweled with gold filigree; for a dwarven thane"},
+    {name:"Green copper ewer", price:"5,000 gp", qty:"Only 1, ever", desc:"Conjures 1 gal. of wine / day; turns poison into wine"},
+    {name:"Mead, Evermead", price:"25 gp / mug", qty:"1d4 × 10 mugs", desc:"An extremely rare elven mead that tastes like pure bliss"},
+    {name:"Mug, brass masterwork", price:"250 gp", qty:"1d4", desc:"Holds 1 pint; has jade inset in a beautiful pattern"},
+    {name:"Tankard of plenty", price:"5,000 gp", qty:"Only 1, ever", desc:"Magically fills with 3 pints of dwarven ale, 3x / day"},
+    {name:"Tea, dwarven kaeth", price:"10 gp / cup", qty:"1d4 × 2 cups", desc:"Drink a cup: immune to sleep for 8 hours"},
+    {name:"Tea, portentous", price:"20 gp / cup", qty:"1d4 × 2 cups", desc:"The leaves in the cup’s bottom hint at the future"},
+    {name:"Wine, Alurlyath", price:"20 gp / bottle", qty:"1d4 – 1 bottles", desc:"White; very rare, glows silver and tastes of romance"},
+    {name:"Wine, elven", price:"25 gp / cup", qty:"1d4 × 2 cups", desc:"Drink a cup: cures the poisoned condition"}
+  ]
+},
+"Animals": {
+  "Atrocious": [
+    {name:"Dog, wild", price:"25 gp", qty:"1d4 – 1", desc:"Untamed, somehow"},
+    {name:"Parrot, dead", price:"1 cp", qty:"Only 1, ever", desc:"Deceased"}
+  ],
+  "Poor": [
+    {name:"Bat", price:"2 cp", qty:"1d4 – 1", desc:""},
+    {name:"Cat", price:"2 sp", qty:"1d4 – 1", desc:""},
+    {name:"Chicken", price:"2 cp", qty:"1d4 × 2", desc:"May instead be a rooster"},
+    {name:"Feed, animal", price:"5 cp / day", qty:"1d4 × 30 days", desc:""},
+    {name:"Frog", price:"1 cp", qty:"1d4 – 1", desc:"May instead be a toad"},
+    {name:"Goat", price:"2 gp", qty:"1d4 × 2", desc:"May instead be a sheep or mountain goat"},
+    {name:"Lizard", price:"1 cp", qty:"1d4 – 1", desc:""},
+    {name:"Pig", price:"3 gp", qty:"1d4 × 2", desc:""},
+    {name:"Rat", price:"1 cp", qty:"1d4", desc:""},
+    {name:"Misc. CR 0 beasts", price:"2 cp - 1 gp", qty:"1d4", desc:"May be untamed"}
+  ],
+  "Medium": [
+    {name:"Badger", price:"5 sp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Cow", price:"10 gp", qty:"1d4 × 2", desc:"May be a bull or steer"},
+    {name:"Draft horse", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Fastieth", price:"75 gp", qty:"1d4 – 1", desc:""},
+    {name:"Hare", price:"2 gp", qty:"1d4", desc:"May instead be a rabbit"},
+    {name:"Mule", price:"8 gp", qty:"1d4", desc:"May instead be a donkey"},
+    {name:"Ox", price:"15 gp", qty:"1d4", desc:""},
+    {name:"Pony", price:"30 gp", qty:"1d4", desc:""},
+    {name:"Raven", price:"10 gp", qty:"1d4 – 1", desc:"May instead be a crow"},
+    {name:"Weasel", price:"5 sp", qty:"1d4 – 1", desc:"May instead be a fox, raccoon, or possum"},
+    {name:"Misc. CR 1/8 beasts", price:"1 gp - 10 gp", qty:"1d4", desc:"May be untamed"},
+    {name:"Misc. CR 1/4 beasts", price:"5 gp - 25 gp", qty:"1d4 – 1", desc:"May be untamed"}
+  ],
+  "Good": [
+    {name:"Axe beak", price:"50 gp", qty:"1d4", desc:"A large flightless bird sometimes used as a mount"},
+    {name:"Baboon", price:"25 gp", qty:"1d4 – 2", desc:"May instead be a monkey"},
+    {name:"Boar", price:"50 gp", qty:"1d4 – 2", desc:"Untamed"},
+    {name:"Camel", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Deer", price:"50 gp", qty:"1d4 – 2", desc:""},
+    {name:"Eagle", price:"20 gp", qty:"1d4 – 2", desc:"May be untamed"},
+    {name:"Elk", price:"100 gp", qty:"1d4 – 2", desc:"May instead be a moose"},
+    {name:"Hawk", price:"15 gp", qty:"1d4 – 2", desc:"May instead be a falcon"},
+    {name:"Hyena", price:"125 gp", qty:"1d4 – 2", desc:"May be untamed; may instead be a jackal"},
+    {name:"Mastiff", price:"50 gp", qty:"1d4", desc:"May instead be a sled dog; full-grown or pups"},
+    {name:"Owl", price:"20 gp", qty:"1d4 – 1", desc:""},
+    {name:"Riding horse", price:"75 gp", qty:"1d4", desc:""},
+    {name:"Lantern of tracking", price:"100 gp", qty:"Only 1, ever", desc:"Lights up when near a random specific creature type"},
+    {name:"Parrot, live", price:"20 gp", qty:"1d4 – 1", desc:"May instead be a peacock"},
+    {name:"Panther", price:"150 gp", qty:"1d4 – 2", desc:"Untamed"},
+    {name:"Staff of Birdcalls", price:"100 gp", qty:"Only 1, ever", desc:""},
+    {name:"Tiger", price:"200 gp", qty:"1d4 – 2", desc:"Untamed; may instead be a crag cat, lion, or snow leopard"},
+    {name:"Warhorse", price:"400 gp", qty:"1d4", desc:""},
+    {name:"Wolf", price:"50 gp", qty:"1d4 – 1", desc:"May be untamed"},
+    {name:"Misc. CR 1/2 beasts", price:"20 gp - 50 gp", qty:"1d4 – 1", desc:"May be untamed"}
+  ],
+  "Excellent": [
+    {name:"Ape", price:"500 gp", qty:"1d4 – 2", desc:"May be untamed"},
+    {name:"Black bear", price:"500 gp", qty:"1d4 – 1", desc:"Untamed; full-grown or cubs"},
+    {name:"Brown bear", price:"800 gp", qty:"1d4 – 1", desc:"Untamed; full-grown or cubs"},
+    {name:"Crocodile", price:"500 gp", qty:"1d4 – 1", desc:"Untamed; may instead be an alligator"},
+    {name:"Dire wolf", price:"800 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Elephant", price:"1,200 gp", qty:"1d4 – 2", desc:""},
+    {name:"Mammoth", price:"2,500 gp", qty:"1d4 – 2", desc:""},
+    {name:"Rhinoceros", price:"1,200 gp", qty:"1d4 – 2", desc:"Untamed"},
+    {name:"Ring of animal influence", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Zebra", price:"400 gp", qty:"1d4 – 1", desc:""},
+    {name:"Misc. CR 1 beasts", price:"50 gp - 300 gp", qty:"1d4 – 2", desc:"May be untamed"}
+  ]
+},
+"Books and maps": {
+  "Atrocious": [
+    {name:"Book, lunatic ravings", price:"25 gp", qty:"1d4 – 1", desc:"Full of mad scribblings, nearly impossible to make out"},
+    {name:"Treasure map, fake", price:"1 sp", qty:"Only 1, ever", desc:"A DC 10 Investigation or History check reveals it is fake"}
+  ],
+  "Poor": [
+    {name:"Book, grammar", price:"25 gp", qty:"1d4", desc:"Seems fancy, but is functionally useless"},
+    {name:"Book, mathematics", price:"25 gp", qty:"1d4", desc:"Teaches everything from the basics to calculus"},
+    {name:"Book, worn diary", price:"25 gp", qty:"1d4 – 2", desc:"Someone’s personal diary; might be important?"},
+    {name:"Calendar", price:"5 gp", qty:"1d4", desc:"Contains all the days and months in a single year"},
+    {name:"Ink", price:"10 gp / ounce", qty:"1d4 × 10 ounces", desc:""},
+    {name:"Ink pen", price:"2 cp", qty:"1d4 × 2", desc:""},
+    {name:"Paper", price:"2 sp / sheet", qty:"1d4 × 20 sheets", desc:""},
+    {name:"Parchment", price:"1 sp / sheet", qty:"1d4 × 20 sheets", desc:""}
+  ],
+  "Medium": [
+    {name:"Book, almanac", price:"25 gp", qty:"1d4", desc:"Full of predictions important to farmers or astrologers"},
+    {name:"Book, area guidebook", price:"50 gp", qty:"1d4 – 1", desc:"Pertains to a nearby city or location"},
+    {name:"Book, blank", price:"25 gp", qty:"1d4 × 3", desc:"Suitable for writing or drawing; won’t hold spells"},
+    {name:"Book, brewing", price:"25 gp", qty:"1d4 – 1", desc:"Explains the basics of creating your own alcohol"},
+    {name:"Book, cookbook", price:"25 gp", qty:"1d4", desc:"Packed with delicious-sounding recipes"},
+    {name:"Book, dictionary", price:"25 gp", qty:"1d4", desc:"Defines every word known to its author"},
+    {name:"Book, history", price:"50 gp", qty:"1d4", desc:"Details the commonly-known history of a region"},
+    {name:"Book, legal code", price:"50 gp", qty:"1d4", desc:"A comprehensive collection of the laws of a region"},
+    {name:"Book, local flora", price:"50 gp", qty:"1d4 – 1", desc:"Pictures and descriptions of common local plants"},
+    {name:"Book, masonry", price:"25 gp", qty:"1d4 – 1", desc:"Simple writings on sound construction techniques"},
+    {name:"Book, poetry", price:"25 gp", qty:"1d4", desc:"Thought-provoking and full of complex emotion"},
+    {name:"Book, tawdry", price:"25 gp", qty:"1d4", desc:"A gripping and bawdy story of steamy romance"},
+    {name:"Book, theological", price:"25 gp", qty:"1d4", desc:"A common holy text for a popular god or faith"},
+    {name:"Book, thesaurus", price:"25 gp", qty:"1d4", desc:"Indicate your intellect with this folio of synonyms"},
+    {name:"Case, map or scroll", price:"1 gp", qty:"1d4 × 5", desc:""},
+    {name:"Map, accurate", price:"25 gp", qty:"1d4 – 1", desc:"Portrays an important area within 7 days’ travel"},
+    {name:"Navigational chart", price:"50 gp", qty:"1d4", desc:"A star chart showing how to navigate by the night sky"},
+    {name:"Newspaper", price:"2 sp", qty:"1d4 × 3", desc:"Printed with the weekly news from a nearby city"}
+  ],
+  "Good": [
+    {name:"Atlas, known world", price:"500 gp", qty:"1d4 – 2", desc:"Very accurate, but not overly detailed"},
+    {name:"Book, alchemy", price:"75 gp", qty:"1d4 – 1", desc:"Contains alchemical scribblings; some in code"},
+    {name:"Book, armor making", price:"75 gp", qty:"1d4 – 1", desc:"Teaches the basics of armor construction"},
+    {name:"Book, astrology", price:"50 gp", qty:"1d4 – 1", desc:"A complete collection of star signs and their meanings"},
+    {name:"Book, bestiary", price:"125 gp", qty:"1d4 – 1", desc:"Pertains to a specific type of creature found nearby"},
+    {name:"Book, biography", price:"50 gp", qty:"1d4 – 1", desc:"Details the life of an important historical figure"},
+    {name:"Book, classic", price:"100 gp", qty:"1d4", desc:"A book everyone wants to have read, but no one has"},
+    {name:"Book, exotic travelogue", price:"100 gp", qty:"1d4 – 1", desc:"Tells of real journeys to a far-off land, with many details"},
+    {name:"Book, heraldry", price:"50 gp", qty:"1d4 – 1", desc:"Describes several prominent family lines, with symbols"},
+    {name:"Book, herbalism", price:"75 gp", qty:"1d4 – 1", desc:"Depicts the practice of collecting and processing herbs"},
+    {name:"Book, heretical", price:"50 gp", qty:"1d4 – 1", desc:"An unholy text that disavows a major theology"},
+    {name:"Book, magic tricks", price:"50 gp", qty:"1d4 – 1", desc:"Teaches non-arcane tricks of sleight of hand"},
+    {name:"Book, medicine", price:"100 gp", qty:"1d4 – 1", desc:"Contains mundane cures for many common ailments"},
+    {name:"Book, memoir", price:"50 gp", qty:"1d4", desc:"A historical figure reflects on their life and trials"},
+    {name:"Book, mythology", price:"50 gp", qty:"1d4", desc:"Tells tales of gods, heroes, and other mythic figures"},
+    {name:"Book, novel", price:"50 gp", qty:"1d4", desc:"One of several in a series of acclaimed genre fiction"},
+    {name:"Book, prayer book", price:"50 gp", qty:"1d4", desc:"Full of ritual chants and liturgical prayers"},
+    {name:"Book, sheet music", price:"50 gp", qty:"1d4", desc:"Holds several popular songs, on multiple instruments"},
+    {name:"Calligrapher’s supplies", price:"10 gp", qty:"1d4", desc:""},
+    {name:"Cartographer’s tools", price:"15 gp", qty:"1d4", desc:""}
+  ],
+  "Excellent": [
+    {name:"Book, exotic fauna", price:"150 gp", qty:"1d4 – 1", desc:"Has pictures and descriptions of many strange animals"},
+    {name:"Book, exotic flora", price:"150 gp", qty:"1d4 – 1", desc:"Details many rare and mysterious herbs and plants"},
+    {name:"Book, forbidden lore", price:"500 gp", qty:"Only 1, ever", desc:"Contains mysterious texts that cultists would kill for"},
+    {name:"Book, planar travelogue", price:"1,000 gp", qty:"Only 1, ever", desc:"Intimate details of a planar locale, by Beatrix Trifling"},
+    {name:"Duplicitous manuscript", price:"5,000 gp", qty:"Only 1, ever", desc:"Wizard only; holds spells, appears as a romance novel"},
+    {name:"Map, automatic", price:"500 gp", qty:"Only 1, ever", desc:"Magically constantly maps everything in a 5 mile radius"},
+    {name:"Map, planar", price:"1,000 gp", qty:"Only 1, ever", desc:"Accurately depicts a significant planar location"},
+    {name:"Treasure map, real", price:"1,000 gp", qty:"Only 1, ever", desc:"Treasure is within 7 days’ travel; worth 1d10 × 500 gp"}
+  ]
+},
+"Flowers and seeds": {
+  "Atrocious": [
+    {name:"Mixed flowers, dead", price:"1 cp / dozen", qty:"1d4 × 2 dozen", desc:"Wilted and slightly browned"}
+  ],
+  "Poor": [
+    {name:"Mistletoe", price:"1 gp / sprig", qty:"1d4 × 5 sprigs", desc:"Druidic focus; fresh and poisonous"},
+    {name:"Mixed flowers", price:"1 cp / dozen", qty:"1d4 × 5 dozen", desc:"A low-quality bouquet of common flowers"},
+    {name:"Seeds, crop", price:"1 cp / handful", qty:"1d4 × 20 handfuls", desc:"Grows 10 lbs. of a staple crop, like rice or wheat"},
+    {name:"Seeds, wildflower", price:"4 cp / handful", qty:"1d4 × 10 handfuls", desc:"Grows up to 60 wildflowers"},
+    {name:"Wildflowers", price:"2 cp / dozen", qty:"1d4 × 5 dozen", desc:"A fresh bouquet of local flowers"}
+  ],
+  "Medium": [
+    {name:"Bison-gourd", price:"1 sp / dozen", qty:"1d4 × 2 dozen", desc:"Naturally repels insects (not giant or swarms)"},
+    {name:"Bowen’s flower", price:"5 cp / dozen", qty:"1d4 × 2 dozen", desc:"Can be ground into a mild sedative tea"},
+    {name:"Flowers, fine", price:"4 cp / dozen", qty:"1d4 × 5 dozen", desc:"Roses, lavendar, tulips, or similar"},
+    {name:"Herbalism kit", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Seeds, bison-gourd", price:"2 sp / handful", qty:"1d4 × 4 handfuls", desc:"Grows up to 60 bison-gourd flowers"},
+    {name:"Seeds, Bowen’s flower", price:"1 sp / handful", qty:"1d4 × 4 handfuls", desc:"Grows up to 60 Bowen’s flowers"},
+    {name:"Seeds, fine flower", price:"8 cp / handful", qty:"1d4 × 10 handfuls", desc:"Grows up to 60 fine flowers"},
+    {name:"Seeds, snowflower", price:"2 sp / handful", qty:"1d4 × 10 handfuls", desc:"Grows up to 60 snowflowers in arctic conditions"},
+    {name:"Seeds, tree", price:"5 cp / handful", qty:"1d4 × 10 handfuls", desc:"Grows up to 25 trees; oak, birch, pine, or similar"},
+    {name:"Snowflower", price:"1 sp / dozen", qty:"1d4 × 3 dozen", desc:"Vibrant purple, pink, or yellow, grow in snow"}
+  ],
+  "Good": [
+    {name:"Dathlil", price:"10 gp / each", qty:"1d4", desc:"Eat (or drink tea): cures the poisoned condition"},
+    {name:"Feather skin", price:"50 gp / each", qty:"1d4 – 2", desc:"Eat (or drink tea): cures one disease"},
+    {name:"Firethorn", price:"1 gp / dozen", qty:"1d4 dozen", desc:"Touch: Succeed a DC 10 Dexterity (Sleight of Hand) check or be poisoned for 1 min."},
+    {name:"Glowblossom", price:"1 sp / dozen", qty:"1d4 × 3 dozen", desc:"Emits dim light in a 10 foot radius"},
+    {name:"Phoenixbloom", price:"1 gp / dozen", qty:"1d4 × 3 dozen", desc:"Burns as a torch, can set objects on fire"},
+    {name:"Seeds, dathlil", price:"20 gp / handful", qty:"1d4 handfuls", desc:"Grows up to 10 dathlil flowers"},
+    {name:"Seeds, feather skin", price:"100 gp / handful", qty:"1d4 – 2 handfuls", desc:"Grows up to 10 feather skin flowers"},
+    {name:"Seeds, fruit tree", price:"3 sp / handful", qty:"1d4 × 10 handfuls", desc:"Grows up to 25 fruit trees; apple, pear, or similar"},
+    {name:"Seeds, firethorn", price:"2 gp / handful", qty:"1d4 handfuls", desc:"Grows up to 60 firethorn flowers"},
+    {name:"Seeds, glowblossom", price:"2 sp / handful", qty:"1d4 × 2 handfuls", desc:"Grows up to 60 glowblossom flowers"},
+    {name:"Seeds, phoenixbloom", price:"2 gp / handful", qty:"1d4 × 2 handfuls", desc:"Grows up to 60 phoenixbloom flowers"},
+    {name:"Seeds, terazul", price:"50 gp / handful", qty:"1d4 handfuls", desc:"Grows up to 10 terazul flowers"},
+    {name:"Seeds, whistleweed", price:"2 sp / handful", qty:"1d4 × 5 handfuls", desc:"Grows up to 60 whistleweed stalks"},
+    {name:"Staff of flowers", price:"100 gp", qty:"Only 1, ever", desc:"Can cause a specific nonmagical flower to grow"},
+    {name:"Terazul", price:"25 gp / each", qty:"1d4", desc:"Eat (or drink tea): immune to sleep for 1d4 days, 50% chance to see disturbing visions"},
+    {name:"Whistleweed", price:"1 sp / dozen", qty:"1d4 × 4 dozen", desc:"Whistles loudly when brushed against"}
+  ],
+  "Excellent": [
+    {name:"Bloodrose", price:"500 gp / each", qty:"1d4 – 2", desc:"Worn as a status symbol of extreme wealth"},
+    {name:"Charm of Plant Command", price:"5,000 gp", qty:"Only 1, ever", desc:"Casts speak with plants 3x / day; grants adv. on Charisma checks to talk with plants"},
+    {name:"Dragon lilly", price:"5 gp / dozen", qty:"1d4 dozen", desc:"Contact purifies up to 10 gal. of water, once"},
+    {name:"Powderpuff", price:"250 gp / each", qty:"1d4 – 2", desc:"Can render a creature unconscious"},
+    {name:"Quaal’s feather token, tree", price:"2,500 gp", qty:"Only 1, ever", desc:"Conjures a 60-ft. tall nonmagical tree"},
+    {name:"Redflower", price:"150 gp / each", qty:"1d4 – 1", desc:"Eat: Adv. on Dex (Sleight of Hand) for 10 mins."},
+    {name:"Seeds, bloodrose", price:"1,000 gp / handful", qty:"1d4 – 2 handfuls", desc:"Grows up to 10 bloodrose flowers"},
+    {name:"Seeds, dragon lilly", price:"10 gp / handful", qty:"1d4 handfuls", desc:"Grows up to 60 dragon lillies in a shallow pond"},
+    {name:"Seeds, powderpuff", price:"500 gp / handful", qty:"1d4 – 2 handfuls", desc:"Grows up to 10 powderpuffs in arctic conditions"},
+    {name:"Seeds, redflower", price:"300 gp / handful", qty:"1d4 – 1 handfuls", desc:"Grows up to 10 redflowers"}
+  ]
+},
+"Food and animal products": {
+  "Atrocious": [
+    {name:"Dung", price:"1 cp / lb.", qty:"1d4 × 25 lbs.", desc:""},
+    {name:"Lard", price:"2 cp / lb.", qty:"1d4 × 25 lbs.", desc:"1/4 day"},
+    {name:"Meal, squalid", price:"3 cp / day", qty:"1d4 × 20 days", desc:"Ripe, rancid, the wrong kind of chewy; 1 day"},
+    {name:"Teeth", price:"1 cp / each", qty:"1d4 × 30", desc:"Either animal or (possibly) human"}
+  ],
+  "Poor": [
+    {name:"Bread", price:"2 cp / loaf", qty:"1d4 × 10 loaves", desc:"1/4 day"},
+    {name:"Butter", price:"3 cp / stick", qty:"1d4 × 10 sticks", desc:""},
+    {name:"Cheese", price:"1 sp / hunk", qty:"1d4 × 20 hunks", desc:"Many different kinds; 1/4 day"},
+    {name:"Eggs", price:"1 sp / dozen", qty:"1d4 × 5 dozen", desc:"Chicken, duck, or similar; 1/4 day"},
+    {name:"Flour", price:"2 cp / lb.", qty:"1d4 × 10 lbs.", desc:""},
+    {name:"Fruit", price:"1 cp / each", qty:"1d4 × 20", desc:"Apples, plums, or similar; 1/4 day"},
+    {name:"Lentils", price:"2 sp / lb.", qty:"1d4 × 10 lbs.", desc:"1 day"},
+    {name:"Meal, poor", price:"6 cp / day", qty:"1d4 × 20 days", desc:"Gruel and greasy bits, smells like regret; 1 day"},
+    {name:"Milk", price:"1 sp / bottle", qty:"1d4 × 5 bottles", desc:""},
+    {name:"Rice", price:"3 sp / lb.", qty:"1d4 × 5 lbs.", desc:"White or brown; 1 day"},
+    {name:"Vegetable", price:"1 cp / each", qty:"1d4 × 20", desc:"Lettuce, leaks, cabbage, or similar; 1/4 day"},
+    {name:"Wheat", price:"1 cp / lb.", qty:"1d4 × 25 lbs.", desc:""}
+  ],
+  "Medium": [
+    {name:"Bones", price:"5 gp / set", qty:"1d4 sets", desc:"Good for soup, and maybe even necromancy"},
+    {name:"Fish", price:"6 sp / lb.", qty:"1d4 × 10 lbs.", desc:"Salmon, herring, or similar; 1 day"},
+    {name:"Fungi", price:"3 cp / lb.", qty:"1d4 × 10 lbs.", desc:"Oysters, chanterelles, or similar; 1/4 day"},
+    {name:"Honey", price:"5 sp / lb.", qty:"1d4 × 5 lbs.", desc:"Many different varieties and flavors"},
+    {name:"Hunting trap", price:"5 gp", qty:"1d4 × 2", desc:"DC 13 Dex check vs. 1d4 piercing and getting stuck"},
+    {name:"Meal, modest", price:"3 sp / day", qty:"1d4 × 20 days", desc:"A hearty broth with real vegetables; 1 day"},
+    {name:"Meat", price:"3 sp / chunk", qty:"1d4 × 15 chunks", desc:"Beef, chicken, venison, or similar; 1/2 day"},
+    {name:"Mess kit", price:"2 sp", qty:"1d4 × 2", desc:""},
+    {name:"Pot, iron", price:"2 gp", qty:"1d4", desc:"Holds 1 gal."},
+    {name:"Rations", price:"5 sp / day", qty:"1d4 × 15 days", desc:"Dried meat, hardtack, and similar; 1 day"},
+    {name:"Salt", price:"5 cp / lb.", qty:"1d4 × 10 lbs.", desc:""},
+    {name:"Soap", price:"2 cp", qty:"1d4 × 5", desc:""},
+    {name:"Seasonings, anise", price:"5 sp / lb.", qty:"1d4 × 10 lbs.", desc:"Sweet and fragrant with a strong licorice-like taste"},
+    {name:"Seasonings, basil", price:"2 gp / lb.", qty:"1d4 × 10 lbs.", desc:"Pungent and sweet, goes well with savory flavors"},
+    {name:"Seasonings, bergamot", price:"5 sp / lb.", qty:"1d4 × 5 lbs.", desc:"Tart and acidic, with a distinctive bite"},
+    {name:"Seasonings, dill", price:"5 sp / lb.", qty:"1d4 × 5 lbs.", desc:"Fresh and grassy, with cirtus notes; good with fish"},
+    {name:"Seasonings, garlic", price:"2 sp / lb.", qty:"1d4 × 10 lbs.", desc:"Powerfully pungent, pairs well with savory foods"},
+    {name:"Seasonings, mint", price:"5 sp / lb.", qty:"1d4 × 5 lbs.", desc:"Cool, crisp, and sweet, refreshes the palate"},
+    {name:"Seasonings, rosemary", price:"8 sp / lb.", qty:"1d4 × 2 lbs.", desc:""},
+    {name:"Seasonings, sage", price:"2 gp / lb.", qty:"1d4 × 2 lbs.", desc:""},
+    {name:"Seasonings, thyme", price:"2 gp / lb.", qty:"1d4 × 2 lbs.", desc:""},
+    {name:"Spices, cloves", price:"3 gp / lb.", qty:"1d4 × 2 lbs.", desc:""},
+    {name:"Spices, cumin", price:"3 gp / lb.", qty:"1d4 × 2 lbs.", desc:""},
+    {name:"Spices, ginger", price:"1 gp / lb.", qty:"1d4 × 10 lbs.", desc:""},
+    {name:"Spices, horseradish", price:"2 sp / lb.", qty:"1d4 × 5 lbs.", desc:""},
+    {name:"Spices, mustard seed", price:"8 sp / lb.", qty:"1d4 × 2 lbs.", desc:""},
+    {name:"Sugar", price:"1 gp / lb.", qty:"1d4 × 5 lbs.", desc:"Many varieties and sources"}
+  ],
+  "Good": [
+    {name:"Bead of nourishment", price:"50 gp", qty:"1d4 × 2", desc:""},
+    {name:"Bread, elven", price:"6 sp / loaf", qty:"1d4 × 2 loaves", desc:"Pleasant, light, and nutritious; 2 days"},
+    {name:"Cake", price:"5 gp", qty:"1d4 × 2", desc:"Sumptuous and moist; 4 days"},
+    {name:"Candy", price:"1 sp / piece", qty:"1d4 × 20 pieces", desc:"Sweet and delicious, no nutritional value"},
+    {name:"Cook’s utensils", price:"1 gp", qty:"1d4 × 2", desc:""},
+    {name:"Fishing tackle", price:"1 gp", qty:"1d4 × 2", desc:""},
+    {name:"Hat, chef", price:"3 gp", qty:"1d4 – 1", desc:""},
+    {name:"Heward’s handy spice pouch", price:"100 gp", qty:"Only 1, ever", desc:""},
+    {name:"Meal, comfortable", price:"5 sp / day", qty:"1d4 × 20 days", desc:"Lightly spiced meat with a side dish; 1 day"},
+    {name:"Meal, wealthy", price:"8 sp / day", qty:"1d4 × 20 days", desc:"A prime cut of meat with dessert; 1 day"},
+    {name:"Pancakes", price:"5 sp / stack", qty:"1d4 × 3 stacks", desc:"Covered in syrup and fruit; 1 day"},
+    {name:"Pie, large", price:"3 gp", qty:"1d4 × 2", desc:"Sweet or savory; 4 days"},
+    {name:"Pie, personal", price:"1 gp", qty:"1d4 × 4", desc:"Sweet or savory; 1 day"},
+    {name:"Spices, other", price:"2 gp / lb.", qty:"1d4 × 5 lbs.", desc:"Pepper, cinnamon, or similar"},
+    {name:"Spices, saffron", price:"15 gp / lb.", qty:"1d4 lbs.", desc:""},
+    {name:"Tortilla", price:"1 cp / each", qty:"1d4 × 5", desc:"1/4 day"}
+  ],
+  "Excellent": [
+    {name:"Bones, dragon", price:"50 gp / lb.", qty:"1d4 × 5 lbs.", desc:""},
+    {name:"Dragon thighbone club", price:"5,000 gp", qty:"Only 1, ever", desc:"3d8 bludgeoning; two-handed"},
+    {name:"Horn, unicorn", price:"1,000 gp", qty:"1d4 – 2", desc:""},
+    {name:"Ioun stone, sustenance", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Meal, aristocratic", price:"2 gp / day", qty:"1d4 × 20 days", desc:"A most succulent cut of magical beast; 1 day"}
+  ]
+},
+"Furniture and interior decor": {
+  "Atrocious": [
+    {name:"Barrel, keg", price:"1 gp", qty:"1d4 × 5", desc:"0.75 ft. wide × 1 ft. tall; holds 20 gal. or 2 cubic ft."},
+    {name:"Barrel", price:"2 gp", qty:"1d4 × 5", desc:"1.25 ft. wide × 2.5 ft. tall; holds 40 gal. or 4 cubic ft."},
+    {name:"Basket", price:"4 sp", qty:"1d4 × 5", desc:"1 ft. wide × 1 ft. tall; holds 40 lbs. or 2 cubic ft."},
+    {name:"Box, medium (crate)", price:"1 gp", qty:"1d4 × 5", desc:"2 ft. × 2 ft., 1 ft. tall; holds 80 lbs. or 4 cubic ft."},
+    {name:"Shelf", price:"7 sp", qty:"1d4 × 4", desc:"4 ft. × 0.5 ft.; holds approx. 20 books or other items"}
+  ],
+  "Poor": [
+    {name:"Bed, single", price:"2 gp", qty:"1d4 × 2", desc:"6 ft. × 3 ft., 2.5 ft. tall; sleeps 1 Medium creature"},
+    {name:"Bookcase", price:"2 gp", qty:"1d4 × 3", desc:"5 ft. × 1 ft., 4 ft. tall; holds approx. 60 books"},
+    {name:"Box, large", price:"7 gp", qty:"1d4 × 3", desc:"3 ft. × 3 ft., 3 ft. tall; holds 675 lbs. or 27 cubic ft."},
+    {name:"Cask, firkin", price:"5 sp", qty:"1d4 × 4", desc:"0.5 ft. wide × 1.33 ft. tall; holds 10 gal. or 1 cubic ft."},
+    {name:"Chair, plain", price:"3 sp", qty:"1d4 × 4", desc:"Made of hardwood, seats 1 Medium creature"},
+    {name:"Chest, medium", price:"5 gp", qty:"1d4 × 2", desc:"6 ft. × 2 ft., 1 ft. tall; holds 300 lbs. or 12 cubic ft."},
+    {name:"Cresset, metal", price:"1 gp", qty:"1d4 × 3", desc:"0.5 ft. wide; burns wood, charcoal, oil, or incense"},
+    {name:"Doghouse, medium", price:"3 gp", qty:"1d4 – 2", desc:"Capable of holding a dog, or a Medium creature"},
+    {name:"Furnace, coal", price:"8 gp", qty:"1d4", desc:"Can burn 1 lb. of coal / day, to generate heat"},
+    {name:"Rug, small", price:"1 gp", qty:"1d4 × 3", desc:"3 ft. × 5 ft.; colorful with a pleasant pattern"},
+    {name:"Stool", price:"5 sp", qty:"1d4 × 2", desc:"1 ft. wide × 3-4 ft. tall; seats 1 Medium creature"},
+    {name:"Table, small", price:"3 gp", qty:"1d4", desc:"3 ft. × 5 ft., 2.5 ft. tall"},
+    {name:"Workbench", price:"7 gp", qty:"1d4 – 1", desc:"3 ft. × 6 ft., 3 ft. tall; includes brackets to hang tools"}
+  ],
+  "Medium": [
+    {name:"Armoire or wardrobe", price:"10 gp", qty:"1d4", desc:"4 ft. × 1.5 ft., 6 ft. tall; holds 900 lbs. or 36 cubic ft."},
+    {name:"Armor stand", price:"5 gp", qty:"1d4", desc:"Made for hanging a suit of armor"},
+    {name:"Bed, double", price:"10 gp", qty:"1d4", desc:"6 ft. × 5 ft., 2.5 ft. tall; sleeps 2 Medium creatures"},
+    {name:"Bed, bunks", price:"8 gp", qty:"1d4", desc:"6 ft. × 3 ft., 6 ft. tall; sleeps 2 Medium creatures"},
+    {name:"Brazier, metal", price:"3 gp", qty:"1d4 × 2", desc:"1.5 ft. wide; burns wood, charcoal, oil, or incense"},
+    {name:"Bench, wood", price:"2 gp", qty:"1d4 × 2", desc:"10 ft. × 1 ft., 1.5 ft. tall; seats 5 Medium creatures"},
+    {name:"Cabinet or cupboard", price:"1 gp", qty:"1d4 × 2", desc:"2 ft. × 1 ft., 3 ft. tall; holds 150 lbs. or 6 cubic ft."},
+    {name:"Cask, hogshead", price:"4 gp", qty:"1d4 × 2", desc:"1.5 ft. wide × 3 ft. tall; holds 65 gal. or 6 cubic ft."},
+    {name:"Cask, tierce", price:"2 gp", qty:"1d4 × 3", desc:"1.25 ft. wide × 2.5 ft. tall; holds 40 gal. or 4 cubic ft."},
+    {name:"Chair, padded", price:"1 gp", qty:"1d4 × 3", desc:"Somewhat comfortable, seats 1 Medium creature"},
+    {name:"Chest, large", price:"10 gp", qty:"1d4 × 2", desc:"6 ft. × 3 ft., 2 ft. tall; holds 900 lbs. or 36 cubic ft."},
+    {name:"Jug or pitcher", price:"2 cp", qty:"1d4 × 4", desc:"Holds 1 gal."},
+    {name:"Painting, medium", price:"10 gp", qty:"Made to order", desc:"Example: Depicts a gnome & her pet giant bee"},
+    {name:"Quilt", price:"8 gp", qty:"Made to order", desc:"8 ft. × 6 ft.; cozy and colorful"},
+    {name:"Rug, medium", price:"6 gp", qty:"1d4 × 2", desc:"5 ft. × 10 ft.; feels warm, comfortable, and inviting"},
+    {name:"Screen", price:"5 gp", qty:"1d4 – 1", desc:"Made of paper and wood; gives privacy, but not much"},
+    {name:"Shrine, small", price:"8 gp", qty:"1d4 – 2", desc:"A tiny space to leave offerings or make quick prayers"},
+    {name:"Statuette, metal or stone", price:"500 gp", qty:"1d4 – 1", desc:"A small figure of a god or person in beautiful detail"},
+    {name:"Table, large", price:"6 gp", qty:"1d4", desc:"4 ft. × 10 ft., 2.5 ft. tall"},
+    {name:"Table, round", price:"5 gp", qty:"1d4", desc:"15 ft. wide × 2.5 ft. tall"},
+    {name:"Weapon hanger", price:"4 gp", qty:"1d4", desc:"Displays one or two weapons and/or a shield on a wall"},
+    {name:"Weapon rack", price:"3 gp", qty:"1d4 × 2", desc:"Functional, not beautiful; holds up to 5 weapons"}
+  ],
+  "Good": [
+    {name:"Altar, large", price:"20 gp", qty:"Made to order", desc:"Contains holy symbols and space for rituals"},
+    {name:"Banner or flag", price:"30 gp", qty:"Made to order", desc:"3 ft. × 10 ft.; comes with custom design"},
+    {name:"Bathtub, ornate", price:"25 gp", qty:"1d4 – 1", desc:"Example: Worked steel with dragon-headed taps"},
+    {name:"Bed, four poster", price:"75 gp", qty:"1d4 – 1", desc:"8 ft. × 6 ft.; filled with owlbear down"},
+    {name:"Candelabrum", price:"5 gp", qty:"1d4 × 2", desc:"1 ft. tall; holds 3-5 candles"},
+    {name:"Cask, butt", price:"8 gp", qty:"1d4 – 1", desc:"2 ft. wide × 4 ft. tall; holds 125 gal. or 12 cubic ft."},
+    {name:"Cask, pipe", price:"6 gp", qty:"1d4 – 1", desc:"1.75 ft. wide × 3.5 ft. tall; holds 105 gal. or 10 cubic ft."},
+    {name:"Chair, armchair", price:"12 gp", qty:"1d4 – 1", desc:"Leather, well stuffed, highly comfortable"},
+    {name:"Couch, divan", price:"10 gp", qty:"1d4 – 1", desc:"8 ft. × 2.5 ft., 1.5 ft. tall; seats 1-3 Medium creatures"},
+    {name:"Couch, sofa", price:"18 gp", qty:"1d4 – 2", desc:"8 ft. × 3 ft., 3.5 ft. tall; seats 3 Medium creatures"},
+    {name:"Desk, ornate", price:"15 gp", qty:"1d4 – 2", desc:"Example: Intricate vines carved in smooth wood"},
+    {name:"Fountain", price:"750 gp", qty:"Made to order", desc:"6 ft. × 6 ft., 4 ft. tall; marble or similar"},
+    {name:"Fresco, large", price:"500 gp", qty:"Made to order", desc:"Example: The City of Brass, set against the fire sea"},
+    {name:"Hassock", price:"5 gp", qty:"1d4", desc:"1 ft. × 1 ft., 1.5 ft. tall; helps a creature sit in comfort"},
+    {name:"Lamp, magic", price:"100 gp", qty:"1d4 – 1", desc:"Turns off and on, triggered by a two claps"},
+    {name:"Mirror", price:"75 gp", qty:"1d4 – 1", desc:"3 ft. wide × 8 ft. tall; despite everything, it’s still you"},
+    {name:"Mosaic, large", price:"600 gp", qty:"Made to order", desc:"Example: Water elementals crashing on a coast"},
+    {name:"Painting, huge", price:"550 gp", qty:"Made to order", desc:"Example: The artist’s depiction of the Blood War"},
+    {name:"Painting, large", price:"50 gp", qty:"Made to order", desc:"Example: A courtly dragonborn and her consort"},
+    {name:"Pedestal, stone", price:"15 gp", qty:"1d4", desc:"3 ft. tall; helps display an item, plant, or art object"},
+    {name:"Rug, large", price:"12 gp", qty:"1d4", desc:"10 ft. × 50 ft.; really ties a room together"},
+    {name:"Statue, metal or stone", price:"1,000 gp", qty:"Made to order", desc:"Example: A brass statue of the goddess Selune"},
+    {name:"Table, long", price:"14 gp", qty:"1d4 – 1", desc:"6 ft. × 25 ft., 2.5 ft. tall"},
+    {name:"Tapestry", price:"250 gp", qty:"Made to order", desc:"Example: Adventurers thwarting an ancient evil"}
+  ],
+  "Excellent": [
+    {name:"Cask, tun", price:"16 gp", qty:"1d4 – 1", desc:"3 ft. wide × 6 ft. tall; holds 250 gal. or 25 cubic ft."},
+    {name:"Chair, throne", price:"750 gp", qty:"1d4 – 2", desc:"Magnificent; sculpted or carved; luxurious cushions"},
+    {name:"Chandelier, huge", price:"1,500 gp", qty:"Made to order", desc:"Example: Astral crystal interlaced with mithral"},
+    {name:"Music box, gold", price:"2,500 gp", qty:"1d4 – 2", desc:"Plays 10 songs; a masterwork of art and artisanry"},
+    {name:"Mirror of life trapping", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Painting, old masterpiece", price:"2,500 gp", qty:"1d4 – 2", desc:"A legendary and historical work of art"},
+    {name:"Statue, precious", price:"2,000 gp", qty:"Made to order", desc:"Example: An enormous adamantine dragon"}
+  ]
+},
+"High fashion": {
+  "Atrocious": [
+    {name:"Sack, wearable", price:"1 cp", qty:"1d4 × 5", desc:"Almost waterproof"}
+  ],
+  "Poor": [
+    {name:"Cap, leather", price:"5 sp", qty:"1d4 × 2", desc:"A sturdy, if ugly, way to keep your head dry"},
+    {name:"Cap, bonnet", price:"5 sp", qty:"1d4 × 2", desc:"A feminine working hat"},
+    {name:"Cap, stocking", price:"4 sp", qty:"1d4 × 2", desc:"A long, conical cap for a cold winter’s night"},
+    {name:"Cloth, canvas", price:"1 sp / sq. yd.", qty:"1d4 × 5 sq. yds.", desc:"Rough; of several colors"},
+    {name:"Clothes, common", price:"5 sp", qty:"1d4 × 5", desc:"Worn and patched, made of rough materials"},
+    {name:"Clothes, robes", price:"1 gp", qty:"1d4 × 2", desc:"Simple, smooth, and clean, with many pockets"},
+    {name:"Clothes, traveler’s", price:"2 gp", qty:"1d4 × 5", desc:"Durable and well-made, but not exactly fancy"}
+  ],
+  "Medium": [
+    {name:"Bracelet, small gold", price:"25 gp", qty:"1d4", desc:"Glitters beautifully in the sunlight"},
+    {name:"Cloak, cold weather", price:"8 gp", qty:"1d4 × 2", desc:"Lined with soft furs, ideal for freezing conditions"},
+    {name:"Cloak, costume", price:"2 gp", qty:"1d4 × 2", desc:"Perfect for dramatic flourishes"},
+    {name:"Cloth, cotton", price:"5 sp / sq. yd.", qty:"1d4 × 4 sq. yds.", desc:"Sturdy, but breathes easily; of several colors"},
+    {name:"Clothes, cold weather", price:"10 gp", qty:"1d4 × 2", desc:"Layered to keep in heat, ideal for freezing conditions"},
+    {name:"Clothes, costume", price:"5 gp", qty:"1d4 × 2", desc:"A finely made costume for a jester, dancer, or actor"},
+    {name:"Clothes, vestments", price:"8 gp", qty:"1d4 × 2", desc:"A ceremonial outfit for a member of a specific clergy"},
+    {name:"Cobbler’s tools", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Eyeglasses", price:"3 gp", qty:"1d4 × 2", desc:"For less-than-perfect vision"},
+    {name:"Eyepatch, leather", price:"2 gp", qty:"1d4 × 2", desc:"Suitable for a pirate, rogue, or mysterious huckster"},
+    {name:"Hat, bowler", price:"2 gp", qty:"1d4 × 2", desc:"A rounded hat with a short brim"},
+    {name:"Handkerchief, silk", price:"25 gp", qty:"1d4 × 2", desc:"Soft and with personalized embroidery"},
+    {name:"Hood", price:"5 sp", qty:"1d4 × 2", desc:""},
+    {name:"Mask, bandana", price:"5 sp", qty:"1d4 × 2", desc:"Good for hiding your identity, for all sorts of reasons"},
+    {name:"Mask, carved wood", price:"5 gp", qty:"1d4 × 2", desc:"Shaped like an animal or archetype, great for parties"},
+    {name:"Perfume", price:"5 gp / vial", qty:"1d4 × 2 vials", desc:"A faint floral aroma for the discerning nose"},
+    {name:"Weaver’s tools", price:"1 gp", qty:"1d4", desc:""},
+    {name:"Wig", price:"2 gp", qty:"1d4 × 2", desc:"Beautiful or austere, good at hiding baldness"}
+  ],
+  "Good": [
+    {name:"Boots of false tracks", price:"100 gp", qty:"Only 1 set, ever", desc:"Makes your tracks appear as another humanoid’s"},
+    {name:"Bow or bowtie", price:"12 gp", qty:"1d4 × 3", desc:"Soft silken cloth, plain or with festive pattern"},
+    {name:"Bracelet, large gold", price:"250 gp", qty:"1d4 – 1", desc:"Detailed with incredibly elaborate patterns"},
+    {name:"Cloak, fine", price:"10 gp", qty:"1d4 × 2", desc:"Expertly cut and fashioned with nobility in mind"},
+    {name:"Cloak of billowing", price:"100 gp", qty:"Only 1, ever", desc:"Bonus action: cloak billows dramatically"},
+    {name:"Cloak of many fashions", price:"100 gp", qty:"Only 1, ever", desc:"Can be made to appear how you wish"},
+    {name:"Cloth, linen", price:"5 gp / sq. yd.", qty:"1d4 × 3 sq. yds.", desc:"Suitable for clothes of all kinds; of many colors"},
+    {name:"Cloth, silk", price:"10 gp / sq. yd.", qty:"1d4 × 2 sq. yds.", desc:"Silky smooth; of many colors"},
+    {name:"Clothes, cloth-of-gold vestments", price:"25 gp", qty:"1d4 – 1", desc:"Suitable for a high priest of distinguished position"},
+    {name:"Clothes, fashionista", price:"50 gp", qty:"1d4 × 5", desc:"Impractical, but the bleeding edge of modern fashion"},
+    {name:"Clothes, fine", price:"15 gp", qty:"1d4 × 5", desc:"Refined noble clothes, very fashionable"},
+    {name:"Clothes, silk robes", price:"250 gp", qty:"1d4 – 1", desc:"Embroidered with gold; suitable for an archmage"},
+    {name:"Clothes of mending", price:"100 gp", qty:"1d4 – 1", desc:""},
+    {name:"Cowl", price:"2 gp", qty:"1d4 × 2", desc:"A face-wrap favored by vigilantes and assassins"},
+    {name:"Glamerweave, common", price:"100 gp", qty:"1d4 – 1", desc:""},
+    {name:"Goggles", price:"10 gp", qty:"1d4", desc:"Leather and glass, perfect for keeping eyes safe"},
+    {name:"Hat, adventurer’s", price:"15 gp", qty:"1d4", desc:"A wide-brimmed leather hat favored by explorers"},
+    {name:"Hat, beret", price:"3 gp", qty:"1d4 × 2", desc:"A simple circular hat, a staple of artists"},
+    {name:"Hat, fez", price:"5 gp", qty:"1d4 × 2", desc:"Worn by distinguished individuals in arid lands"},
+    {name:"Hat of wizardry", price:"100 gp", qty:"Only 1, ever", desc:"Wizard only; attempt to cast extra cantrips"},
+    {name:"Hat, sea captain", price:"20 gp", qty:"1d4", desc:"A nautical cap that demands a crew’s respect"},
+    {name:"Hat, top hat", price:"25 gp", qty:"1d4 × 2", desc:"An iconic symbol of modern refinement"},
+    {name:"Hat, ushanka", price:"3 gp", qty:"1d4 × 2", desc:"A soft, warm hat, ideal for freezing conditions"},
+    {name:"Mask, black velvet", price:"25 gp", qty:"1d4 – 1", desc:"Stitched with sliver thread, ideal for a ball"},
+    {name:"Mask, domino", price:"15 gp", qty:"1d4", desc:"Dashing and mysterious, but still quite handsome"},
+    {name:"Perfume of bewitching", price:"50 gp", qty:"1d4 – 2", desc:"Adv. on Cha. checks vs. humanoids ≤ CR 1 for 1 hr."},
+    {name:"Rope, silk", price:"10 gp / 50 ft.", qty:"1d4 × 50 ft.", desc:"Lightweight and easy to climb"},
+    {name:"Shaded glasses", price:"350 gp", qty:"1d4", desc:"Negates disadv. from the Sunlight Sensitivity trait"},
+    {name:"Shiftweave", price:"100 gp", qty:"1d4 – 1", desc:""}
+  ],
+  "Excellent": [
+    {name:"Anklet, jeweled", price:"2,500 gp", qty:"Only 1, ever", desc:"Glitters and shines like a thousand tiny stars"},
+    {name:"Boots of the winterlands", price:"500 gp", qty:"Only 1 set, ever", desc:""},
+    {name:"Bracelet, large platinum", price:"2,500 gp", qty:"Only 1, ever", desc:"Inset with an immense, sparkling sapphire"},
+    {name:"Brooch, silver and gold", price:"750 gp", qty:"Only 1, ever", desc:"Patterened as a rose with incredibly delicate petals"},
+    {name:"Cloak, superior", price:"1,000 gp", qty:"Only 1, ever", desc:"Enchanted: always the finest cloak in the room"},
+    {name:"Clothes, superior", price:"1,500 gp", qty:"Only 1, ever", desc:"Enchanted: always the finest clothes in the room"},
+    {name:"Comb set, gold dragon", price:"750 gp", qty:"Only 1, ever", desc:"Two combs, with blood-red garnets for dragon eyes"},
+    {name:"Glamerweave, uncommon", price:"500 gp", qty:"1d4 – 2", desc:""},
+    {name:"Hat, superior", price:"1,000 gp", qty:"Only 1, ever", desc:"Enchanted: always the finest hat in the room"},
+    {name:"Robe of scintillating colors", price:"50,000 gp", qty:"Only 1, ever", desc:"Sheds blinding, colorful lights that stun creatures"},
+    {name:"Slippers of spider climbing", price:"500 gp", qty:"Only 1 set, ever", desc:""}
+  ]
+},
+"Jewelry and gems": {
+  "Atrocious": [
+    {name:"Geode, fake", price:"2 sp", qty:"1d4 × 2", desc:"No crystals within this rock. Only more rock."}
+  ],
+  "Poor": [
+    {name:"Bar, copper", price:"5 sp / lb.", qty:"1d4 × 2 lbs.", desc:""},
+    {name:"Bar, iron", price:"1 sp / lb.", qty:"1d4 × 5 lbs.", desc:""},
+    {name:"Bead, simple", price:"5 sp / each", qty:"1d4 × 5", desc:"Semi-precious metal; for hair or beards"},
+    {name:"Chalice, copper", price:"25 gp", qty:"1d4", desc:"Holds 1 cup; simple design with silver filigree"},
+    {name:"Crystal", price:"10 gp", qty:"1d4 × 2", desc:"Arcane focus; a shining bit of quartz or similar"},
+    {name:"Earring, simple", price:"5 gp", qty:"1d4 × 5", desc:"Small stud or ring of semi-precious metal"},
+    {name:"Gems, mundane", price:"10 gp / each", qty:"1d4 × 5", desc:"Examples: agate, lapis lazuli, malachite, tiger eye"},
+    {name:"Locket, brass", price:"4 sp", qty:"1d4 × 3", desc:"Opens to hold a portrait or tiny keepsake"},
+    {name:"Pick, miner’s", price:"4 gp", qty:"1d4", desc:""},
+    {name:"Magnifying glass", price:"100 gp", qty:"1d4 × 2", desc:""},
+    {name:"Ring, simple", price:"5 gp", qty:"1d4 × 4", desc:"A small circle of polished semi-precious metal"}
+  ],
+  "Medium": [
+    {name:"Bar, silver", price:"5 gp / lb.", qty:"1d4 lbs.", desc:""},
+    {name:"Bead, precious", price:"5 gp / each", qty:"1d4 × 3", desc:"Engraved silver, gold, or similar; for hair or beards"},
+    {name:"Bracelet, small gold", price:"25 gp", qty:"1d4", desc:"Glitters beautifully in the sunlight"},
+    {name:"Crown, bronze", price:"250 gp", qty:"1d4 – 1", desc:"A sturdy crown, suited for a lesser ruler"},
+    {name:"Gems, common", price:"50 gp / each", qty:"1d4 × 5", desc:"Examples: citrine, jasper, moonstone, quartz"},
+    {name:"Gems, uncommon", price:"100 gp / each", qty:"1d4 × 4", desc:"Examples: amber, amethyst, garnet, jade, pearl"},
+    {name:"Jeweler’s tools", price:"25 gp", qty:"1d4", desc:""},
+    {name:"Locket, gold", price:"25 gp", qty:"1d4 × 2", desc:"Opens to hold a portrait or tiny keepsake"},
+    {name:"Necklace, simple", price:"50 gp", qty:"1d4 × 3", desc:"Braided semi-precious metal"},
+    {name:"Ring, signet", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Spell gem, obsidian", price:"500 gp", qty:"1d4 – 1", desc:""}
+  ],
+  "Good": [
+    {name:"Bar, gold", price:"50 gp / lb.", qty:"1d4 lbs.", desc:""},
+    {name:"Bar, platinum", price:"500 gp / lb.", qty:"1d4 lbs.", desc:""},
+    {name:"Bead, gemstone", price:"50 gp / each", qty:"1d4", desc:"Carved jade, amethyst, or amber; for hair or beards"},
+    {name:"Birdcage, gold", price:"250 gp", qty:"1d4 – 1", desc:"Can hold up to 5 Tiny birds; electrum filigree"},
+    {name:"Bracelet, large gold", price:"250 gp", qty:"1d4 – 1", desc:"Detailed with incredibly elaborate patterns"},
+    {name:"Brooch of shielding", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Brooch, silver and gold", price:"750 gp", qty:"Only 1, ever", desc:"Patterened as a rose with incredibly delicate petals"},
+    {name:"Chalice, silver", price:"750 gp", qty:"1d4 – 1", desc:"Engraved with lunar symbols, set with moonstones"},
+    {name:"Comb set, gold dragon", price:"750 gp", qty:"Only 1, ever", desc:"Two combs, with blood-red garnets for dragon eyes"},
+    {name:"Crown, precious", price:"750 gp", qty:"1d4 – 2", desc:"Elegant metal circlet inset with a few gemstones"},
+    {name:"Earring, precious", price:"200 gp", qty:"1d4 × 2", desc:"Ostentatiously gemmed stud or metal ring"},
+    {name:"Elemental gem, any", price:"250 gp", qty:"Only 1, ever", desc:""},
+    {name:"Gem of brightness", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Gem of seeing", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Gems, rare", price:"500 gp / each", qty:"1d4 × 3", desc:"Examples: alexandrite, peridot, topaz"},
+    {name:"Gems, very rare", price:"1,000 gp / each", qty:"1d4 × 2", desc:"Examples: emerald, opal, sapphire, ruby"},
+    {name:"Medallion of thoughts", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Mug, brass masterwork", price:"250 gp", qty:"1d4", desc:"Holds 1 pint; has jade inset in a beautiful pattern"},
+    {name:"Necklace, silver", price:"250 gp", qty:"1d4 × 2", desc:"Includes pendant with a gem"},
+    {name:"Psi crystal", price:"500 gp", qty:"Only 1, ever", desc:"Grants telepathy; radiates light based on INT"},
+    {name:"Ring, gold", price:"250 gp", qty:"1d4 × 2", desc:"Resembles woven vines, inset with a bloodstone"},
+    {name:"Ruby of the war mage", price:"100 gp", qty:"1d4 – 1", desc:"Attaches to a weapon; used as a focus for spells"},
+    {name:"Spell gem, lapis lazuli", price:"500 gp", qty:"1d4 – 1", desc:""},
+    {name:"Spell gem, quartz", price:"5,000 gp", qty:"1d4 – 2", desc:""}
+  ],
+  "Excellent": [
+    {name:"Anklet, jeweled", price:"2,500 gp", qty:"Only 1, ever", desc:"Glitters and shines like a thousand tiny stars"},
+    {name:"Bracelet, large platinum", price:"2,500 gp", qty:"Only 1, ever", desc:"Inset with an immense, sparkling sapphire"},
+    {name:"Chain, fine gold", price:"2,500 gp", qty:"Only 1, ever", desc:"Affixed with a luminous, shining fire opal"},
+    {name:"Chalice, jeweled gold", price:"7,500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Circlet, gold", price:"2,500 gp", qty:"Only 1, ever", desc:"Set with a string of glittering, tiny sapphires"},
+    {name:"Crown, jeweled gold", price:"7,500 gp", qty:"Only 1, ever", desc:"A masterwork crown fit only for an emperor"},
+    {name:"Crystalline chronicle", price:"50,000 gp", qty:"Only 1, ever", desc:"Wizard only; holds spells, ignores M components"},
+    {name:"Drinking horn, ivory", price:"7,500 gp", qty:"Only 1, ever", desc:"Bejeweled with gold filigree; for a dwarven thane"},
+    {name:"Eye patch, bejeweled", price:"2,500 gp", qty:"Only 1, ever", desc:"Has sapphires and moonstones that mimic an eye"},
+    {name:"Gems, legendary", price:"5,000 gp / each", qty:"1d4", desc:"Examples: black sapphire, diamond, jacinth"},
+    {name:"Necklace, pink pearl", price:"2,500 gp", qty:"Only 1, ever", desc:"A strand of immaculate, incredibly rare pearls"},
+    {name:"Ring, jeweled platinum", price:"7,500 gp", qty:"Only 1, ever", desc:"In the shape of a circular dragon with ruby eyes"},
+    {name:"Ring of protection", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Ring of telekinesis", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Spell gem, amber", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Spell gem, bloodstone", price:"5,000 gp", qty:"Only 1, ever", desc:""}
+  ]
+},
+"Knick-knacks": {
+  "Atrocious": [
+    {name:"Pole, 10-foot", price:"5 cp", qty:"1d4 × 4", desc:""},
+    {name:"Blanket", price:"5 sp", qty:"1d4 × 4", desc:""}
+  ],
+  "Poor": [
+    {name:"Block and tackle", price:"1 gp", qty:"1d4 × 2", desc:""},
+    {name:"Bucket", price:"5 cp", qty:"1d4 × 4", desc:""},
+    {name:"Candle", price:"1 cp", qty:"1d4 × 10", desc:"Comes in a variety of colors"},
+    {name:"Chalk", price:"1 cp / piece", qty:"1d4 × 5 pieces", desc:"Comes in a variety of colors"},
+    {name:"Dice set", price:"1 sp", qty:"1d4 × 3", desc:""},
+    {name:"Flask or tankarad", price:"2 cp", qty:"1d4 × 5", desc:"Made of either pewter or treated wood"},
+    {name:"Ink, bottle", price:"10 gp / oz.", qty:"1d4 × 2 oz.", desc:""},
+    {name:"Ink pen", price:"2 cp", qty:"1d4 × 2", desc:""},
+    {name:"Paper", price:"2 sp / sheet", qty:"1d4 × 2 sheets", desc:""},
+    {name:"Pipe, smoking", price:"1 sp", qty:"1d4 × 2", desc:""},
+    {name:"Playing card set", price:"5 sp", qty:"1d4 × 3", desc:""},
+    {name:"Signal whistle", price:"5 cp", qty:"1d4 × 2", desc:""},
+    {name:"Tent, two-person", price:"2 gp", qty:"1d4 × 2", desc:""},
+    {name:"Tinderbox", price:"5 sp", qty:"1d4 × 3", desc:""},
+    {name:"Wax, sealing", price:"5 sp", qty:"1d4 × 5", desc:""}
+  ],
+  "Medium": [
+    {name:"Amulet", price:"5 gp", qty:"1d4", desc:"Holy symbol; a necklace with a symbol of faith"},
+    {name:"Ball bearings", price:"1 gp / 1,000", qty:"1d4 × 2,000", desc:""},
+    {name:"Bit and bridle", price:"2 gp", qty:"1d4", desc:""},
+    {name:"Cart", price:"15 gp", qty:"1d4 – 1", desc:""},
+    {name:"Case, map or scroll", price:"1 gp", qty:"1d4", desc:"Empty"},
+    {name:"Chain", price:"5 gp / 10 ft.", qty:"1d4 × 20 ft.", desc:""},
+    {name:"Climber’s kit", price:"25 gp", qty:"1d4", desc:""},
+    {name:"Crampons", price:"2 gp / pair", qty:"1d4 + 1 pairs", desc:"Spiked metal plates for boots, prevents slipping on ice"},
+    {name:"Grappling hook", price:"2 gp", qty:"1d4", desc:""},
+    {name:"Hourglass", price:"25 gp", qty:"1d4", desc:""},
+    {name:"Lamp", price:"5 sp", qty:"1d4", desc:""},
+    {name:"Lantern, bullseye", price:"10 gp", qty:"1d4", desc:""},
+    {name:"Lantern, hooded", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Lock", price:"10 gp", qty:"1d4", desc:"Key included"},
+    {name:"Rope, hempen", price:"1 gp / 50 ft.", qty:"1d4 × 50 ft.", desc:""},
+    {name:"Scale, merchant’s", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Snowshoes", price:"2 gp", qty:"1d4 + 1 pairs", desc:"Keeps their wearer from sinking in deep snow"}
+  ],
+  "Good": [
+    {name:"Artisan’s tools", price:"Varies", qty:"1d4 + 2 sets", desc:"Randomly selected; prices as listed in the PHB"},
+    {name:"Backpack parachute", price:"100 gp", qty:"1d4 – 1", desc:"Wearer can fall safely after 60 ft.; 10 mins. to repack"},
+    {name:"Bell", price:"1 gp", qty:"1d4 + 1", desc:""},
+    {name:"Book, blank", price:"25 gp", qty:"1d4 × 3", desc:"Suitable for writing or drawing; won’t hold spells"},
+    {name:"Caltrops, bag of 20", price:"1 gp / 20", qty:"1d4 × 40", desc:""},
+    {name:"Candle of the deep", price:"100 gp", qty:"1d4 – 2", desc:"Able to burn underwater"},
+    {name:"Chest of preserving", price:"100 gp", qty:"Only 1, ever", desc:"Items inside don’t age or decay; holds 3.75 cubic ft."},
+    {name:"Cleansing stone", price:"100 gp", qty:"Only 1, ever", desc:""},
+    {name:"Dice, engraved bone", price:"25 gp", qty:"1d4 – 1", desc:"A set of dice with many different amounts of sides"},
+    {name:"Dragonchess set", price:"1 gp", qty:"1d4", desc:""},
+    {name:"Ear horn of hearing", price:"100 gp", qty:"1d4 – 2", desc:"Held to ear: suppresses the deafened condition"},
+    {name:"Grappling hook", price:"2 gp", qty:"1d4", desc:""},
+    {name:"Hat of vermin", price:"100 gp", qty:"Only 1, ever", desc:""},
+    {name:"Hook of fisher’s delight", price:"5,000 gp", qty:"Only 1, ever", desc:"Catches one of four varieties of semi-magical fish"},
+    {name:"Horn of silent alarm", price:"100 gp", qty:"Only 1, ever", desc:""},
+    {name:"Lantern of revealing", price:"500 gp", qty:"Only 1, ever", desc:"Reveals invisible creatures and objects"},
+    {name:"Immovable rod", price:"500 gp", qty:"1d4", desc:"When activated, stays in place and holds 8,000 lbs."},
+    {name:"Magnifying glass", price:"100 gp", qty:"1d4 – 1", desc:""},
+    {name:"Manacles", price:"2 gp", qty:"1d4 – 1", desc:"Key included"},
+    {name:"Mystery key", price:"50 gp", qty:"1d4 – 2", desc:"Has a 5% chance to unlock any door, then disappear"},
+    {name:"Orb of direction", price:"100 gp", qty:"Only 1, ever", desc:"Action: learn which direction is north"},
+    {name:"Pipe of smoke monsters", price:"100 gp", qty:"Only 1, ever", desc:""},
+    {name:"Pole of collapsing", price:"100 gp", qty:"1d4 – 2", desc:"Can collapse to 1 ft., or expand to 10 ft."},
+    {name:"Rowboat", price:"50 gp", qty:"1d4 – 1", desc:""},
+    {name:"Stone of good luck", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Talking doll", price:"100 gp", qty:"Only 1, ever", desc:"Can be instructed to say up to 6 short phrases"},
+    {name:"Tarokka deck", price:"10 gp", qty:"1d4 – 1", desc:"Used to read fortunes; only a Vistani can read true"},
+    {name:"Three-Dragon Ante set", price:"1 gp", qty:"1d4", desc:""},
+    {name:"Rain catcher, tarp", price:"1 gp", qty:"1d4 – 1", desc:"Catches 2 gal. of water per inch of rain; holds 8 gal."},
+    {name:"Spyglass", price:"1,000 gp", qty:"1d4 – 1", desc:""},
+    {name:"Stilts, adjustable", price:"50 gp", qty:"1d4 – 2", desc:"1 min. to put on or take off; increases height 2-5 ft."}
+  ],
+  "Excellent": [
+    {name:"Board game, jade", price:"7,500 gp", qty:"Only 1, ever", desc:"An ancient game with solid gold pieces; rules included"},
+    {name:"Bottle stopper. bejeweled", price:"750 gp", qty:"Only 1, ever", desc:"Decorated with gold leaf and amethysts; for a noble"},
+    {name:"Sovereign glue", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Universal solvent", price:"50,000 gp", qty:"Only 1, ever", desc:""}
+  ]
+},
+"Leatherworking": {
+  "Atrocious": [
+    {name:"Leather, cured", price:"5 gp / sq. yd.", qty:"1d4 × 4 sq. yds.", desc:""},
+    {name:"Sack", price:"1 cp", qty:"1d4 × 3", desc:"Holds up to 1 cu. ft., or 30 lbs."},
+    {name:"Tankard", price:"1 cp", qty:"1d4 × 2", desc:"Made entirely of leather"}
+  ],
+  "Poor": [
+    {name:"Bit and bridle", price:"2 gp", qty:"1d4 × 2", desc:""},
+    {name:"Cap, leather", price:"5 sp", qty:"1d4 × 2", desc:"A sturdy way to keep your head dry"},
+    {name:"Meat", price:"3 sp / chunk", qty:"1d4 × 5 chunks", desc:"Beef, chicken, venison, or similar; 1/2 day of food"},
+    {name:"Padded armor", price:"5 gp", qty:"1d4 × 2", desc:"Light armor; AC: 11 + Dex mod; stealth disadv."},
+    {name:"Pouch", price:"5 sp", qty:"1d4 × 4", desc:"Holds up to 1/5 cu. ft., or 6 lbs."},
+    {name:"Saddle, pack", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Waterskin", price:"2 sp", qty:"1d4 × 3", desc:""}
+  ],
+  "Medium": [
+    {name:"Backpack", price:"2 gp", qty:"1d4 × 3", desc:""},
+    {name:"Bolt case, crossbow", price:"1 gp", qty:"1d4", desc:"Holds up to 20 bolts"},
+    {name:"Cloak, cold weather", price:"8 gp", qty:"1d4 × 2", desc:"Lined with soft furs, ideal for freezing conditions"},
+    {name:"Clothes, cold weather", price:"10 gp", qty:"1d4 × 2", desc:"Layered to keep in heat, ideal for freezing conditions"},
+    {name:"Clothes, traveler’s", price:"2 gp", qty:"1d4", desc:"Durable and well-made, stands punishment"},
+    {name:"Hood", price:"5 sp", qty:"1d4 × 2", desc:""},
+    {name:"Hunting trap", price:"5 gp", qty:"1d4", desc:"DC 13 Dex check vs. 1d4 piercing and getting stuck"},
+    {name:"Leather armor", price:"10 gp", qty:"1d4 × 2", desc:"Light armor; AC: 11 + Dex mod"},
+    {name:"Leatherworker’s tools", price:"25 gp", qty:"1d4", desc:""},
+    {name:"Oil", price:"1 sp / flask", qty:"1d4 × 2 flasks", desc:""},
+    {name:"Quiver", price:"1 gp", qty:"1d4", desc:"Holds up to 20 arrows"},
+    {name:"Rain catcher, tarp", price:"1 gp", qty:"1d4 – 1", desc:"Catches 2 gal. of water per inch of rain; holds 8 gal."},
+    {name:"Saddle, riding", price:"10 gp", qty:"1d4 – 1", desc:""},
+    {name:"Shield", price:"10 gp", qty:"1d4 × 2", desc:"A hide or leather targe; +2 to AC"},
+    {name:"Whip", price:"2 gp", qty:"1d4 × 2", desc:"1d4 slashing; finesse, reach"}
+  ],
+  "Good": [
+    {name:"Armor +1, light armor or hide armor", price:"5,000 gp*", qty:"1d4 – 2", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Armor of gleaming, light armor or hide armor", price:"100 gp*", qty:"1d4 – 1", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Bagpipes", price:"30 gp", qty:"1d4 – 1", desc:""},
+    {name:"Barding, light armor or hide armor", price:"Varies", qty:"1d4 – 1", desc:"Price is 4 times the cost of a set of similar armor for humanoids"},
+    {name:"Bag of holding", price:"500 gp", qty:"1d4 – 2", desc:"Holds 64 cu. ft., or 500 lbs; always weighs 15 lbs."},
+    {name:"Boots of elvenkind", price:"500 gp", qty:"Only 1 set, ever", desc:""},
+    {name:"Boots of false tracks", price:"100 gp", qty:"Only 1 set, ever", desc:"Makes your tracks appear as another humanoid’s"},
+    {name:"Boots of striding and springing", price:"500 gp", qty:"Only 1 set, ever", desc:""},
+    {name:"Boots of the winterlands", price:"500 gp", qty:"Only 1 set, ever", desc:""},
+    {name:"Cast-off armor, light armor or hide armor", price:"100 gp*", qty:"1d4 – 1", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Cowl", price:"2 gp", qty:"1d4 × 2", desc:"A face-wrap favored by vigilantes and assassins"},
+    {name:"Dragon scale bracers, red", price:"500 gp", qty:"Only 1, ever", desc:"Attune: Melee attacks can deal fire damage instead"},
+    {name:"Drum or hand drum", price:"6 gp", qty:"1d4 × 2", desc:"Instrument; leather hide over a wooden frame"},
+    {name:"Hat, adventurer’s", price:"15 gp", qty:"1d4", desc:"A wide-brimmed leather hat favored by explorers"},
+    {name:"Hide armor", price:"10 gp", qty:"1d4", desc:"Medium armor; AC: 12 + Dex mod (max 2)"},
+    {name:"Mariner’s armor, light armor or hide armor", price:"500 gp*", qty:"1d4 – 2", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Quiver of Ehlonna", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Saddlebags", price:"4 gp", qty:"1d4 × 2", desc:""},
+    {name:"Saddle, exotic", price:"60 gp", qty:"1d4 – 1", desc:""},
+    {name:"Saddle, military", price:"20 gp", qty:"1d4", desc:""},
+    {name:"Scale mail", price:"50 gp", qty:"1d4 – 1", desc:"Made using the scales of a once-living creature"},
+    {name:"Studded leather armor", price:"45 gp", qty:"1d4", desc:"Light armor; AC: 12 + Dex mod"}
+  ],
+  "Excellent": [
+    {name:"Armor +2, light armor or hide armor", price:"50,000 gp*", qty:"1d4 – 2", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Armor of resistance, light armor or hide armor", price:"5,000 gp*", qty:"Only 1, ever", desc:"Of a random variety; add base cost of the nonmagical armor to item’s price"},
+    {name:"Arrow-catching shield", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Belt of dwarvenkind", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Dragon scale mail, red", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Glamoured studded leather", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Heward’s handy haversack", price:"5,000 gp", qty:"Only 1, ever", desc:"Holds 12 cu. ft., or 120 lbs; always weighs 5 lbs."},
+    {name:"Saddle of the cavalier", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Shield +1", price:"500 gp", qty:"1d4 – 2", desc:"A magical hide or leather targe; +3 to AC"},
+    {name:"Wingwear", price:"500 gp", qty:"1d4 – 2", desc:"Instead recharges with a long rest"}
+  ]
+},
+"Mechanical contraptions": {
+  "Atrocious": [
+    {name:"Ball and cup", price:"2 cp", qty:"1d4 × 2", desc:"A DC 10 Dexterity check catches the ball in the cup"},
+    {name:"Hoop and stick", price:"2 cp", qty:"1d4 × 3", desc:"A pass-time from a simpler time"}
+  ],
+  "Poor": [
+    {name:"Abacus", price:"2 gp", qty:"1d4 × 2", desc:""},
+    {name:"Ball bearings, bag of 1,000", price:"1 gp / 1,000", qty:"1d4 × 2,000", desc:""},
+    {name:"Block and tackle", price:"1 gp", qty:"1d4 × 2", desc:""},
+    {name:"Chain", price:"5 gp / 10 ft.", qty:"1d4 × 20 ft.", desc:""},
+    {name:"Cogs", price:"1 sp / handful", qty:"1d4 × 5 handfuls", desc:""},
+    {name:"Mobile, wooden", price:"9 cp", qty:"1d4", desc:"Bats, birds, or dragons; wings flap as it spins"},
+    {name:"Nesting dolls, wooden", price:"9 cp / set", qty:"1d4 × 2 sets", desc:"Painted to resemble commoners or animals"},
+    {name:"Oil", price:"1 sp / flask", qty:"1d4 × 5 flasks", desc:""},
+    {name:"Puppet, wooden", price:"9 sp", qty:"1d4 × 2", desc:"Looks like a historical or mythological figure"}
+  ],
+  "Medium": [
+    {name:"Barking box", price:"50 gp", qty:"1d4 – 1", desc:"Wind up: barks when it detects vibration for 8 hrs."},
+    {name:"Barrel organ", price:"30 gp", qty:"1d4", desc:"Musical instrument; turn the crank to play"},
+    {name:"Bolt, crossbow", price:"1 gp / 20", qty:"1d4 × 20", desc:""},
+    {name:"Bolt case, crossbow", price:"1 gp", qty:"1d4", desc:"Holds up to 20 bolts"},
+    {name:"Bomb", price:"150 gp", qty:"1d4 × 4", desc:"May not exist in settings without gunpowder"},
+    {name:"Clockwork dog", price:"50 gp", qty:"1d4", desc:"Wind up: follows you for 12 hrs."},
+    {name:"Clockwork dragonchess", price:"50 gp", qty:"1d4 × 2", desc:"Wind up: plays dragonchess against you for 2 hrs."},
+    {name:"Crossbow, hand", price:"75 gp", qty:"1d4 × 2", desc:"1d6 piercing; light, loading, ranged (30/120)"},
+    {name:"Crossbow, light", price:"25 gp", qty:"1d4", desc:"1d8 piercing; loading, two-handed, ranged (80/320)"},
+    {name:"Ersatz eye", price:"100 gp", qty:"1d4", desc:"Replaces a missing eye"},
+    {name:"Gunpowder, horn", price:"35 gp", qty:"1d4 × 4", desc:"May not exist in settings without gunpowder"},
+    {name:"Hunting trap", price:"5 gp", qty:"1d4 × 3", desc:"DC 13 Dex check vs. 1d4 piercing and getting stuck"},
+    {name:"Lock", price:"10 gp", qty:"1d4 × 5", desc:"Key included"},
+    {name:"Manacles", price:"2 gp", qty:"1d4 × 2", desc:"Key included"},
+    {name:"Matchless pipe", price:"50 gp", qty:"1d4 – 1", desc:"Mechanically lights itself, when used"},
+    {name:"Merry-go-round, toy", price:"9 sp", qty:"1d4", desc:"Held in two hands, winds up and plays music"},
+    {name:"Prosthetic limb", price:"100 gp", qty:"1d4", desc:"Replaces a missing arm"}
+  ],
+  "Good": [
+    {name:"All-purpose tool, +1", price:"500 gp", qty:"Only 1, ever", desc:"Artificer only; changes into any tools, casts cantrips"},
+    {name:"Backpack parachute", price:"100 gp", qty:"1d4 – 1", desc:"Wearer can fall safely after 60 ft.; 10 mins. to repack"},
+    {name:"Clockwork amulet", price:"100 gp", qty:"Only 1, ever", desc:""},
+    {name:"Clockwork dragon", price:"75 gp", qty:"1d4", desc:"Wind up: roars and breathes fire for 1 min."},
+    {name:"Clockwork orrery", price:"100 gp", qty:"1d4 – 1", desc:"A complex and abstract model of the multiverse"},
+    {name:"Clockwork mount", price:"250 gp", qty:"1d4 – 2", desc:"Same stats as riding horse; does not need to eat, sleep, or breathe, immune to poison"},
+    {name:"Clockwork songbird", price:"50 gp", qty:"1d4", desc:"Wind up: sings 1 of 3 songs; does not move"},
+    {name:"Crossbow, heavy", price:"50 gp", qty:"1d4", desc:"1d10 piercing; heavy, loading, two-handed, ranged (100/400)"},
+    {name:"Crossbow, light repeating", price:"0 gp", qty:"1d4 – 1", desc:"1d8 piercing; two-handed, ranged (40/160); has 6 shots, can be reloaded with an action"},
+    {name:"Dynamite", price:"200 gp / stick", qty:"1d4 × 4 sticks", desc:"May not exist in settings without gunpowder"},
+    {name:"Goggles of night", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Gunpowder, keg", price:"250 gp", qty:"1d4 – 1", desc:"May not exist in settings without gunpowder"},
+    {name:"Helm of underwater action", price:"500 gp", qty:"1d4 – 1", desc:"Allows you to breathe underwater, grants darkvision to 60 ft., and grants a swimming speed of 30 ft."},
+    {name:"Lock of trickery", price:"100 gp", qty:"1d4 – 2", desc:"Dex checks made to pick lock have disadv."},
+    {name:"Oil of slipperiness", price:"250 gp / flask", qty:"1d4 – 1 flasks", desc:""},
+    {name:"Orb of gonging", price:"100 gp", qty:"Only 1, ever", desc:"Action: make orb start/stop gonging indefinitely"},
+    {name:"Pocketwatch", price:"10 gp", qty:"1d4 × 2", desc:"Wind up: reliably tells time of day for 24 hrs."},
+    {name:"Propeller helm", price:"250 gp", qty:"Only 1, ever", desc:"Action: Cast levitate, but 50% chance to break after"},
+    {name:"Pyroconverger", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Tangler grenade", price:"250 gp", qty:"1d4 – 2", desc:"Throw up to 60 ft.: grenade explodes, creatures within 10 ft. make a DC 15 Dex save. Creatures that fail are restrained for up to 1 hr., as with the web spell. The DC to escape is 20."},
+    {name:"Thermal cube", price:"100 gp", qty:"1d4 – 1", desc:"Radiates dry heat in a 15 foot radius"},
+    {name:"Thieves’ tools", price:"25 gp", qty:"1d4", desc:""},
+    {name:"Tinker’s tools", price:"50 gp", qty:"1d4 + 1", desc:""},
+    {name:"Walloping crossbow bolt", price:"10 gp / ea.", qty:"1d4 × 10", desc:"A creature hit must succeed a DC 10 Str save or be prone"},
+    {name:"Wand of pyrotechnics", price:"100 gp", qty:"Only 1, ever", desc:"Shoots off fireworks"}
+  ],
+  "Excellent": [
+    {name:"Arcane propulsion arm", price:"50,000 gp", qty:"Only 1, ever", desc:"Can be used to make a ranged rocket punch attack"},
+    {name:"Blast scepter", price:"5,000 gp", qty:"Only 1, ever", desc:"Casts 4th-level thunderwave at-will"},
+    {name:"Celestial orrery", price:"1,000 gp", qty:"Only 1, ever", desc:"An intricate, accurate clockwork model of the multi verse; small enough to be held in two hands"},
+    {name:"Clockwork rocket sled", price:"2,500 gp", qty:"1d4 – 1", desc:"Wind up: travels 60 ft. / round in direction it faces for 1 min.; cannot be steered; holds 2 creatures"},
+    {name:"Dodecahedron of doom", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Iron bands of Bilarro", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Manual of golems, iron", price:"25,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Mizzium mortar", price:"5,000 gp", qty:"Only 1, ever", desc:"Made of mithral, in settings other than Ravnica"},
+    {name:"Music box, gold", price:"2,500 gp", qty:"1d4 – 2", desc:"Plays 10 songs; a masterwork of art and artisanry"},
+    {name:"Professor orb", price:"5,000 gp", qty:"Only 1, ever", desc:"Is sentient; has 18 Int, a scholar’s personality, and knows 4 esoteric subjects (+9 bonus to checks)"},
+    {name:"Spell: Summon construct", price:"200 gp", qty:"3 spells / day", desc:"Cast at 4th-level; choose the construct’s type"},
+    {name:"Wand of lightning bolts", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Wingwear", price:"500 gp", qty:"1d4 – 2", desc:"Instead recharges with a long rest"}
+  ]
+},
+"Medium and heavy armor": {
+  "Atrocious": [
+    {name:"Barrel, wearable", price:"2 gp", qty:"1d4 × 2", desc:"Includes straps; does not include top or bottom"},
+    {name:"Bucket", price:"5 cp", qty:"1d4 × 2", desc:"Anything is armor if you’re foolhardy enough"}
+  ],
+  "Poor": [
+    {name:"Bar, copper", price:"5 sp / lb.", qty:"1d4 × 2 lbs.", desc:""},
+    {name:"Bar, iron", price:"1 sp / lb.", qty:"1d4 × 5 lbs.", desc:""},
+    {name:"Chain mail", price:"75 gp", qty:"1d4 × 3", desc:"Heavy armor; AC: 16; req. Str 13; stealth disadv."},
+    {name:"Chain shirt", price:"50 gp", qty:"1d4 × 4", desc:"Medium armor; AC: 13 + Dex mod (max 2)"},
+    {name:"Ring mail", price:"30 gp", qty:"1d4 × 4", desc:"Heavy armor; AC: 14; stealth disadv."},
+    {name:"Scale mail", price:"50 gp", qty:"1d4 × 3", desc:"Medium armor; AC: 14 + Dex mod (max 2); stealth disadv."},
+    {name:"Shield", price:"10 gp", qty:"1d4 × 3", desc:"Made of bronze or steel; +2 to AC"}
+  ],
+  "Medium": [
+    {name:"Anvil", price:"75 gp", qty:"1d4 – 1", desc:"Weighs 275 lbs."},
+    {name:"Barding, medium or heavy armor", price:"Varies", qty:"1d4", desc:"Price is 4 times the cost of a set of similar armor for humanoids"},
+    {name:"Breastplate", price:"400 gp", qty:"1d4 + 4", desc:"Medium armor; AC: 14 + Dex mod (max 2)"},
+    {name:"Helm, horned", price:"25 gp", qty:"1d4", desc:"While imposing, it is hard to get through doors"},
+    {name:"Smith’s tools", price:"20 gp", qty:"1d4", desc:""},
+    {name:"Spiked armor", price:"75 gp", qty:"1d4 + 1", desc:"Medium armor; AC: 14 + Dex mod (max 2); stealth disadv."},
+    {name:"Splint", price:"200 gp", qty:"1d4 + 4", desc:"Heavy armor; AC: 17; req. Str 15; stealth disadv."}
+  ],
+  "Good": [
+    {name:"Adamantine armor, any", price:"500 gp*", qty:"1d4 – 2", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Armor +1, medium or heavy armor", price:"5,000 gp*", qty:"1d4 – 2", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Armor of gleaming, medium or heavy armor", price:"100 gp*", qty:"1d4 – 1", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Bar, silver", price:"5 gp / lb.", qty:"1d4 lbs.", desc:""},
+    {name:"Cast-off armor, medium or heavy armor", price:"100 gp*", qty:"1d4 – 1", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Dragonguard", price:"900 gp", qty:"Only 1, ever", desc:"Medium armor; AC: 14 + Dex mod (max 2); adv. on saves against breath weapons from dragons"},
+    {name:"Dread helm", price:"100 gp", qty:"Only 1, ever", desc:"When you wear it, your eyes glow red"},
+    {name:"Half plate", price:"750 gp", qty:"1d4 + 3", desc:"Medium armor; AC: 15 + Dex mod (max 2); stealth disadv."},
+    {name:"Helm, winged", price:"50 gp", qty:"1d4", desc:"Gallant and flamboyant"},
+    {name:"Mariner’s armor, medium or heavy armor", price:"500 gp*", qty:"1d4 – 2", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Mithral armor, any", price:"500 gp*", qty:"1d4 – 2", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Plate", price:"1,500 gp", qty:"1d4 + 2", desc:"Heavy armor; AC: 18; req. Str 15; stealth disadv."},
+    {name:"Shield +1", price:"500 gp", qty:"1d4 – 2", desc:"Made of enchanted metal; +3 to AC"},
+    {name:"Shield of expression", price:"100 gp", qty:"Only 1, ever", desc:""},
+    {name:"Smoldering armor, medium or heavy armor", price:"100 gp*", qty:"1d4 – 1", desc:"Add base cost of the nonmagical armor to item’s price"}
+  ],
+  "Excellent": [
+    {name:"Arrow-catching shield", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Armor +2, medium or heavy armor", price:"50,000 gp*", qty:"1d4 – 2", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Armor of resistance, medium or heavy armor", price:"5,000 gp*", qty:"Only 1, ever", desc:"Of a random variety; add base cost of the nonmagical armor to item’s price"},
+    {name:"Bar, gold", price:"50 gp / lb.", qty:"1d4 lbs.", desc:""},
+    {name:"Bar, platinum", price:"500 gp / lb.", qty:"1d4 lbs.", desc:""},
+    {name:"Dwarven plate", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Elven chain", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Gauntlets of flaming fury", price:"5,000 gp", qty:"Only 1 set, ever", desc:""},
+    {name:"Helm of teleportation", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Molten bronze skin, any", price:"5,000 gp*", qty:"Only 1, ever", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Shield +2", price:"5,000 gp", qty:"1d4 – 2", desc:"Made of enchanted metal; +4 to AC"}
+  ]
+},
+"Potions, poisons, and herbs": {
+  "Atrocious": [
+    {name:"Bottle, glass", price:"2 gp / bottle", qty:"1d4 × 25 bottles", desc:"Empty; holds up to 1 ½ pints"},
+    {name:"Flask", price:"1 cp / flask", qty:"1d4 × 50 flasks", desc:"Empty; holds up to 1 pint"},
+    {name:"Vial", price:"1 gp / vial", qty:"1d4 × 50 vials", desc:"Empty; holds up to 4 oz."},
+    {name:"Water", price:"1 cp / cup", qty:"1d4 × 100 cups", desc:"An effective base for most potions"}
+  ],
+  "Poor": [
+    {name:"Dragon’s blood (drug)", price:"10 gp / dose", qty:"1d4 × 2 doses", desc:"Highly addictive, enhances magical ability"},
+    {name:"Dreamlily (drug)", price:"10 gp / dose", qty:"1d4 × 2 doses", desc:"Highly addictive, significantly reduces pain"},
+    {name:"Herbalism kit", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Herbs, common", price:"5 sp / lb.", qty:"1d4 × 10 lbs.", desc:"Ex: mint, sage; often used in common potions"},
+    {name:"Merchant’s scale", price:"5 gp", qty:"1d4 × 2", desc:""},
+    {name:"Poison, basic", price:"100 gp / vial", qty:"1d4 × 2 vials", desc:"Injury; can inflict 1d4 poison damage"},
+    {name:"Potion of climbing", price:"50 gp", qty:"1d4 × 2", desc:"Grants a climbing speed for 1 hour"},
+    {name:"Potion of healing", price:"50 gp", qty:"1d4 × 3", desc:"Replenishes 2d4 + 2 hit points"},
+    {name:"Tea, sandberry", price:"5 cp / cup", qty:"1d4 × 10 cups", desc:"Harsh, bitter, and acidic; very hydrating"},
+    {name:"Tea, talktuth", price:"5 cp / cup", qty:"1d4 × 5 cups", desc:"Metallic-tasting and slate grey; an acquired taste"}
+  ],
+  "Medium": [
+    {name:"Alchemist’s fire", price:"50 gp / flask", qty:"1d4 × 3 flasks", desc:""},
+    {name:"Acid", price:"25 gp / vial", qty:"1d4 × 3 vials", desc:""},
+    {name:"Alchemist’s supplies", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Antitoxin", price:"50 gp / vial", qty:"1d4 × 2 vials", desc:""},
+    {name:"Assassin’s blood", price:"150 gp / dose", qty:"1d4 + 1 doses", desc:"Injested; can inflict 1d12 poison damage"},
+    {name:"Healer’s kit", price:"5 gp", qty:"1d4 × 2", desc:""},
+    {name:"Herbs, uncommon", price:"5 gp / lb.", qty:"1d4 × 5 lbs.", desc:"Ex: horsetail, comfrey; for uncommon potions"},
+    {name:"Oil of slipperiness", price:"250 gp", qty:"1d4 + 2", desc:"Grants either freedom of movement or grease"},
+    {name:"Perfume", price:"5 gp / vial", qty:"1d4 × 2 vials", desc:"A faint floral aroma for the discerning nose"},
+    {name:"Philter of love", price:"250 gp", qty:"1d4 + 1", desc:"Charms the drinker for up to 1 hour"},
+    {name:"Poisoner’s kit", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Potion of fire breath", price:"250 gp", qty:"1d4 + 2", desc:"Allows you to exhale fire, dealing 4d6 fire damage"},
+    {name:"Potion of greater healing", price:"250 gp", qty:"1d4 × 2", desc:"Replenishes 4d4 + 4 hit points"},
+    {name:"Potion of growth", price:"250 gp", qty:"1d4 – 1", desc:"Grow (as with the enlarge/reduce spell) for 1d4 hrs."},
+    {name:"Potion of resistance", price:"250 gp", qty:"1d4 × 3", desc:"Of a random type; gives a damage resistance for 1 hr."},
+    {name:"Potion of water breathing", price:"250 gp", qty:"1d4 × 2", desc:"Allows you to breathe water for up to 1 hour"},
+    {name:"Ryath root", price:"50 gp", qty:"1d4 × 2", desc:"Grants 2d4 temp. hit points; if you eat >1, poisoned"},
+    {name:"Tea, blueleaf", price:"5 cp / cup", qty:"1d4 × 10 cups", desc:"Sweet and minty, suppresses nausea and dysentery"},
+    {name:"Tea, chalthorn", price:"2 sp / cup", qty:"1d4 × 10 cups", desc:"Dry and chalky, makes you unable to taste spicy food"},
+    {name:"Tea, elkammat", price:"1 sp / cup", qty:"1d4 × 5 cups", desc:"Woody, bitter, and nutty; drinking fosters positivity"},
+    {name:"Tea, gaeth’ad", price:"5 sp / cup", qty:"1d4 × 5 cups", desc:"Thick and brackish, can be mildly psychoactive"},
+    {name:"Tea, mourningberry", price:"5 gp / cup", qty:"1d4 × 5 cups", desc:"A mild depressant; relaxing and soothing"},
+    {name:"Tea, nararoot", price:"2 gp / cup", qty:"1d4 × 2 cups", desc:"Licorice taste; prevents becoming pregnant for 2 weeks"},
+    {name:"Tea, vauge", price:"5 cp / cup", qty:"1d4 × 10 cups", desc:"Grassy and slightly salty, a mellow-tasting tisane"},
+    {name:"Truth serum", price:"150 gp / dose", qty:"1d4 + 1 doses", desc:"Injested; target cannot knowingly speak a lie"},
+    {name:"Wildroot", price:"25 gp", qty:"1d4 × 2", desc:"Cures the poisoned condition"}
+  ],
+  "Good": [
+    {name:"Alchemy jug", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Brewer’s supplies", price:"20 gp", qty:"1d4", desc:""},
+    {name:"Drow poison", price:"200 gp / dose", qty:"1d4 doses", desc:"Injury; can render target unconscious"},
+    {name:"Elixir of health", price:"2,500 gp", qty:"1d4", desc:"Cures disease, blindness, deafness, paralyzed, poison"},
+    {name:"Glassblower’s tools", price:"30 gp", qty:"1d4", desc:""},
+    {name:"Herbs, rare", price:"50 gp / lb.", qty:"1d4 × 2 lbs.", desc:"Ex: devilroot, embertear; for rare potions"},
+    {name:"Perfume of bewitching", price:"50 gp", qty:"1d4 – 2", desc:"Adv. on Cha. checks vs. humanoids ≤ CR 1 for 1 hr."},
+    {name:"Potion of clairvoyance", price:"2,500 gp", qty:"1d4", desc:"Grants the effect of the clairvoyance spell"},
+    {name:"Potion of diminution", price:"2,500 gp", qty:"1d4", desc:"Drink to be shrunk as if by enlarge/reduce"},
+    {name:"Potion of heroism", price:"2,500 gp", qty:"1d4", desc:"Grants bless and 10 temporary hit points"},
+    {name:"Potion of mind reading", price:"2,500 gp", qty:"1d4", desc:"Grants the effects of the detect thoughts spell"},
+    {name:"Potion of stone giant strength", price:"2,500 gp", qty:"1d4 – 1", desc:"Strength score becomes 23 for 1 hr."},
+    {name:"Potion of superior healing", price:"2,500 gp", qty:"1d4 + 1", desc:"Replenishes 8d4 + 8 hit points"},
+    {name:"Serpent venom", price:"200 gp / dose", qty:"1d4 doses", desc:"Injury; can inflict 3d6 poison damage"},
+    {name:"Tea, Beorunna’s cure-all", price:"10 gp / cup", qty:"1d4 cups", desc:"First time you regain hp in 1 hr.: gain extra 2d4 hp"},
+    {name:"Tea, cassil", price:"10 gp / cup", qty:"1d4 cups", desc:"Prevents making another creature pregnant for 2 weeks"},
+    {name:"Tea, earth dragon’s eye", price:"6 cp / cup", qty:"1d4 × 5 cups", desc:"Black tea; increases movement speed by 5 ft. for 1 hr."},
+    {name:"Tea, feverbalm", price:"7 gp / cup", qty:"1d4 cups", desc:"Numbing taste; suppresses madness effects for 1 hr."},
+    {name:"Tea, long jing", price:"5 gp / cup", qty:"1d4 × 5 cups", desc:"Green tea; grants resistance to poison dmg. for 1 hr."},
+    {name:"Tea, meiriath", price:"7 gp / cup", qty:"1d4 × 5 cups", desc:"Mango and citrus taste; popular with the wealthy"},
+    {name:"Tea, mother’s leaf", price:"10 gp / cup", qty:"1d4 cups", desc:"Tastes of grass and sage, helps recover from disease"},
+    {name:"Tea, pale jade", price:"1 gp / cup", qty:"1d4 × 5 cups", desc:"White tea; light, airy, and easy drinking"},
+    {name:"Tea, wild ginger", price:"5 sp / cup", qty:"1d4 × 5 cups", desc:"Spicy and sweet; settles the stomach"}
+  ],
+  "Excellent": [
+    {name:"Alchemical compendium", price:"5,000 gp", qty:"Only 1, ever", desc:"Wizard only; holds spells, transforms objects"},
+    {name:"Burnt othur fumes", price:"500 gp / dose", qty:"1d4 – 1 doses", desc:"Inhailed; can inflict persistent poison damage"},
+    {name:"Herbs, very rare", price:"500 gp / lb.", qty:"1d4 lbs.", desc:"Ex: starspine, voidweave; for very rare potions"},
+    {name:"Kyrzin’s ooze", price:"50,000 gp", qty:"Only 1, ever", desc:"Grants acid breath, amorphous form, etc."},
+    {name:"Malice", price:"250 gp / dose", qty:"1d4 – 1 doses", desc:"Inhailed; can blind affected creatures"},
+    {name:"Oil of sharpness", price:"25,000 gp", qty:"1d4 – 1", desc:"Grants a weapon +3 to attack and damage"},
+    {name:"Potion of cloud giant strength", price:"25,000 gp", qty:"1d4 – 1", desc:"Strength score becomes 27 for 1 hr."},
+    {name:"Potion of invisibility", price:"25,000 gp", qty:"1d4 – 1", desc:"Grants invisibility for up to 1 hour"},
+    {name:"Potion of invulnerability", price:"2,500 gp", qty:"1d4 – 1", desc:"Grants resistance to all damage"},
+    {name:"Potion of longevity", price:"25,000 gp", qty:"1d4 – 1", desc:"Reduces your age by 1d6 + 6 (usually)"},
+    {name:"Potion of supreme healing", price:"25,000 gp", qty:"1d4", desc:"Regains 10d4 + 20 hit points"},
+    {name:"Potion of vitality", price:"25,000 gp", qty:"1d4 – 1", desc:"Cures exhaustion, disease, and poison"},
+    {name:"Tea, mallow", price:"7 gp / cup", qty:"1d4 × 2 cups", desc:"Semi-sweet; a sleep aid, renders dream ineffective"}
+  ]
+},
+"Religious idols and blessings": {
+  "Atrocious": [
+    {name:"Alms box", price:"5 cp", qty:"1d4 × 3", desc:"A box for collecting monetary offerings"},
+    {name:"Candle", price:"1 cp", qty:"1d4 × 10", desc:"Comes in a variety of colors"}
+  ],
+  "Poor": [
+    {name:"Amulet", price:"5 gp", qty:"1d4 × 7", desc:"Holy symbol; a necklace with a symbol of faith"},
+    {name:"Book, holy", price:"5 gp", qty:"1d4 × 10", desc:"From one of a variety of faiths"},
+    {name:"Chalk", price:"1 cp / piece", qty:"1d4 × 10 pieces", desc:"Comes in a variety of colors"},
+    {name:"Dagger, ritual", price:"2 gp", qty:"1d4 × 2", desc:"Has an oddly curved design"},
+    {name:"Emblem", price:"5 gp", qty:"1d4 × 10", desc:"Holy symbol; the visage or symbol of a deity"},
+    {name:"Incense", price:"1 sp / block", qty:"1d4 × 20 blocks", desc:"Thick, musky, and pungent"},
+    {name:"Parchment", price:"1 sp / sheet", qty:"1d4 × 20 sheets", desc:""},
+    {name:"Reliquary", price:"5 gp", qty:"1d4 × 3", desc:"Holy symbol; a small box holding a fragment of a relic"},
+    {name:"Spell: Ceremony", price:"60 gp", qty:"3 spells / day", desc:"Performs a holy rite, out of: atonement, bless water, coming of age, dedication, funeral, or wedding"},
+    {name:"Spell: Cure wounds", price:"10 gp", qty:"3 spells / day", desc:"Cast at 1st-level; heals 1 creature for 1d8 + 3 hit points"},
+    {name:"Spell: Identify", price:"20 gp", qty:"3 spells / day", desc:"Reveals the properties of a magic item"}
+  ],
+  "Medium": [
+    {name:"Censer", price:"55 gp", qty:"1d4 + 2", desc:"A gilded thurible for burning incense"},
+    {name:"Clothes, robes", price:"1 gp", qty:"1d4 × 2", desc:"Simple, smooth, and clean, with many pockets"},
+    {name:"Clothes, vestments", price:"8 gp", qty:"1d4 × 2", desc:"A ceremonial outfit for a member of a specific clergy"},
+    {name:"Healer’s kit", price:"5 gp", qty:"1d4 × 2", desc:""},
+    {name:"Holy water", price:"25 gp / flask", qty:"1d4 × 5 flasks", desc:""},
+    {name:"Lamp", price:"5 sp", qty:"1d4 × 2", desc:""},
+    {name:"Oil", price:"1 sp / flask", qty:"1d4 × 5 flasks", desc:""},
+    {name:"Quarterstaff", price:"2 sp", qty:"1d4 × 2", desc:""},
+    {name:"Spell: Aid", price:"40 gp", qty:"3 spells / day", desc:"Cast at 2nd-level; up to 3 creatures increase their hit point maximum by 5 for 8 hrs."},
+    {name:"Spell: Dispel magic", price:"90 gp", qty:"3 spells / day", desc:"Cast at 3rd- level; ends a spell or magic effect"},
+    {name:"Spell: Lesser restoration", price:"40 gp", qty:"3 spells / day", desc:"Cures blindness, deafness, paralyzed, or poisoned"},
+    {name:"Spell: Prayer of healing", price:"40 gp", qty:"3 spells / day", desc:"Cast at 2nd-level; heals up to 6 creatures for 2d8 + 3 hit points"},
+    {name:"Totem", price:"1 gp", qty:"1d4 × 2", desc:"Druidic focus; carved in the image of a god or spirit"},
+    {name:"Yew wand", price:"10 gp", qty:"1d4", desc:"Druidic focus; associated with natural, eternal life"}
+  ],
+  "Good": [
+    {name:"Amulet of the devout, +1", price:"500 gp", qty:"Only 1, ever", desc:"Cleric/paladin only; use Channel Divinity w/o a charge"},
+    {name:"Balance of harmony", price:"500 gp", qty:"Only 1, ever", desc:"Scales that can cast detect evil and good as a ritual"},
+    {name:"Cleansing stone", price:"100 gp", qty:"1d4 – 1", desc:""},
+    {name:"Clothes, cloth-of-gold vestments", price:"25 gp", qty:"1d4 – 1", desc:"Suitable for a high priest of distinguished position"},
+    {name:"Everbright lantern", price:"100 gp", qty:"1d4 – 1", desc:"Instead holds a continual flame, outside of Eberron"},
+    {name:"Guardian emblem", price:"500 gp", qty:"Only 1, ever", desc:"Cleric/paladin only; negates critical hits"},
+    {name:"Keoghtom’s ointment", price:"250 gp", qty:"1d4 – 2", desc:""},
+    {name:"Lantern of revealing", price:"500 gp", qty:"Only 1, ever", desc:"Reveals invisible creatures and objects"},
+    {name:"Periapt of health", price:"500 gp", qty:"Only 1, ever", desc:"Grants immunity to disease"},
+    {name:"Periapt of wound closure", price:"500 gp", qty:"Only 1, ever", desc:"Stabilize when dying, double healing from hit dice"},
+    {name:"Shrine, small", price:"8 gp", qty:"1d4 – 2", desc:"A tiny space to leave offerings or make quick prayers"},
+    {name:"Spell: Death ward", price:"160 gp", qty:"3 spells / day", desc:"If you drop to 0 hit points, you drop to 1 instead"},
+    {name:"Spell: Divination", price:"210 gp", qty:"3 spells / day", desc:"Grants guidance on a course of action"},
+    {name:"Spell: Remove curse", price:"90 gp", qty:"3 spells / day", desc:"Lifts a curse, or attunement to a cursed item"},
+    {name:"Spell: Speak with dead", price:"90 gp", qty:"3 spells / day", desc:"Allows you to speak to one non-undead corpse"},
+    {name:"Staff of the python", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Statuette, metal or stone", price:"500 gp", qty:"1d4 – 1", desc:"A small figure of a god or person in beautiful detail"},
+    {name:"Tankard of sobriety", price:"100 gp", qty:"Only 1, ever", desc:""}
+  ],
+  "Excellent": [
+    {name:"Candle of invocation", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Devotee’s censer", price:"5,000 gp", qty:"Only 1, ever", desc:"Cleric/paladin only; flail, bonus damage and healing"},
+    {name:"Mace of disruption", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Necklace of prayer beads", price:"5,000 gp", qty:"Only 1, ever", desc:"Has 1d4 + 2 random beads that each cast a spell"},
+    {name:"Periapt of proof against poison", price:"5,000 gp", qty:"Only 1, ever", desc:"Grants immunity to poisons, poison damage, and the poisoned condition"},
+    {name:"Protective verses", price:"5,000 gp", qty:"Only 1, ever", desc:"Wizard only; holds spells, adds temporary hit points"},
+    {name:"Spell: Greater restoration", price:"450 gp", qty:"3 spells / day", desc:"Reduces exhaustion, removes charmed, petrified, a curse, or ability/hit point maximum reduction"},
+    {name:"Spell: Hallow", price:"2,250 gp", qty:"3 spells / day", desc:"Sanctifies an area, with additional effects"},
+    {name:"Spell: Raise dead", price:"1,250 gp", qty:"3 spells / day", desc:"Returns a dead corpse to life"}
+  ]
+},
+"Songs and instruments": {
+  "Atrocious": [
+    {name:"Sheet music, terrible", price:"1 cp", qty:"1d4 copies", desc:"Discordant, has 11/8 time signature for some reason"},
+    {name:"Thelarr or whistlecane", price:"1 cp", qty:"1d4 × 3", desc:"Instrument; incredibly simple, cut from a single reed"}
+  ],
+  "Poor": [
+    {name:"Bell", price:"1 gp", qty:"1d4 × 3", desc:""},
+    {name:"Drum or hand drum", price:"6 gp", qty:"1d4 × 4", desc:"Instrument; leather hide over a wooden frame"},
+    {name:"Horn or longhorn", price:"3 gp", qty:"1d4 × 3", desc:"Instrument; good for playing a few very loud notes"},
+    {name:"Ink", price:"10 gp / bottle", qty:"1d4 bottles", desc:""},
+    {name:"Ink pen", price:"2 cp", qty:"1d4 × 2", desc:""},
+    {name:"Paper", price:"2 sp / sheet", qty:"1d4 × 5 sheets", desc:""},
+    {name:"Shawm", price:"2 gp", qty:"1d4 × 4", desc:"Instrument; a long, reeded woodwind with fingerholes"},
+    {name:"Sheet music, derivative", price:"5 cp", qty:"1d4 copies", desc:"Has a popular song’s name crossed out and re-titled"}
+  ],
+  "Medium": [
+    {name:"Bagpipes", price:"30 gp", qty:"1d4 × 2", desc:"Instrument; a bag for air with protruding pipes"},
+    {name:"Chalumeau", price:"15 gp", qty:"1d4 × 3", desc:"Instrument; a reeded woodwind, functional design"},
+    {name:"Cymbals", price:"20 gp / set", qty:"1d4 × 3 sets", desc:"Instrument; a set of two metal discs, with straps"},
+    {name:"Flute or songhorn", price:"2 gp", qty:"1d4 × 4", desc:"Instrument; a reedless woodwind of metal or wood"},
+    {name:"Lyre", price:"30 gp", qty:"1d4 × 4", desc:"Instrument; small, hand-held, and harp-like"},
+    {name:"Pan flute or birdpipes", price:"12 gp", qty:"1d4 × 4", desc:"Instrument; joined wooden pipes of different lengths"},
+    {name:"Sheet music, catchy", price:"5 sp", qty:"1d4", desc:"You sometimes find yourself humming snatches of it"},
+    {name:"Strings", price:"4 cp / ea.", qty:"1d4 × 5", desc:"Good for restringing a string instrument"},
+    {name:"Timbrel or tantan", price:"13 gp", qty:"1d4 × 2", desc:"Instrument; a wooden hoop with metal discs in it"},
+    {name:"Tocken", price:"8 gp", qty:"1d4 × 2", desc:"Instrument; bells favored by underground cultures"},
+    {name:"Wargong", price:"10 gp", qty:"1d4 × 2", desc:"Instrument; a large, hanging metal disc, often a shield"}
+  ],
+  "Good": [
+    {name:"Adufe", price:"10 gp", qty:"1d4 × 2", desc:"Instrument; a boxlike, rattling frame drum"},
+    {name:"Dulcimer", price:"25 gp", qty:"1d4 × 3", desc:"Instrument; flat, with strings plucked, bowed, or struck"},
+    {name:"Glaur", price:"30 gp", qty:"1d4 × 2", desc:"Instrument; a curved, valved, brass horn"},
+    {name:"Glockenspiel", price:"35 gp", qty:"1d4 × 2", desc:"Instrument; metal bars struck with mallets"},
+    {name:"Gloon", price:"30 gp", qty:"1d4 × 2", desc:"Instrument; a mournful, valve-less, curved horn"},
+    {name:"Grand piano", price:"500 gp", qty:"1d4 – 1", desc:"Instrument; too big to be easily moved"},
+    {name:"Harp, exotic wood", price:"750 gp", qty:"Only 1, ever", desc:"Instrument; carved and inlaid with ivory and zircon gems"},
+    {name:"Harpsichord", price:"350 gp", qty:"1d4 – 1", desc:"Instrument; too big to be easily moved"},
+    {name:"Horn of silent alarm", price:"100 gp", qty:"Only 1, ever", desc:""},
+    {name:"Instrument of illusions", price:"100 gp", qty:"Only 1, ever", desc:"Can be any kind of instrument"},
+    {name:"Instrument of scribing", price:"100 gp", qty:"Only 1, ever", desc:"Can be any kind of instrument"},
+    {name:"Instrument of the bards, Doss lute", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Instrument of the bards, Fochlucan bandore", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Instrument of the bards, Mac-Fuirmidh cittern", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Lute or yarting", price:"35 gp", qty:"1d4 × 3", desc:"Instrument; with plucked strings and a long neck"},
+    {name:"Pipes of haunting", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Pipes of the sewers", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Rebab", price:"32 gp", qty:"1d4 × 2", desc:"Instrument; very long and narrow, with bowed strings"},
+    {name:"Rhythm-maker’s drum, +1", price:"500 gp", qty:"Only 1, ever", desc:"Bard only; regain Bardic Inspiration with an action"},
+    {name:"Sheet music, classic", price:"5 gp", qty:"1d4 copies", desc:"A song everyone knows, and many sing along with"},
+    {name:"Sheet music, inspired", price:"50 gp", qty:"1d4 copies", desc:"A new song, exciting and destined for greatness"},
+    {name:"Viol", price:"30 gp", qty:"1d4 × 3", desc:"Instrument; bowed, fretted, with a hollow body"},
+    {name:"Wand of conducting", price:"100 gp", qty:"Only 1, ever", desc:""},
+    {name:"Zulkoon", price:"50 gp", qty:"1d4 × 2", desc:"Instrument; a complex and sinister-sounding organ"}
+  ],
+  "Excellent": [
+    {name:"Bell branch", price:"5,000 gp", qty:"Only 1, ever", desc:"Druid/warlock only; detects the presence of creatures"},
+    {name:"Chime of opening", price:"2,500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Eagle whistle", price:"5,000 gp", qty:"Only 1, ever", desc:"Gain flying speed of 2 × move speed, only when blowing"},
+    {name:"Gnomish saxophone", price:"250 gp", qty:"1d4 – 1", desc:"Instrument; a reeded brass woodwind, covered in keys"},
+    {name:"Instrument of the bards, Canaith mandolin", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Instrument of the bards, Cli lyre", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Lyre of building", price:"5,000 gp", qty:"Only 1, ever", desc:"Bard only; has spells, protects structures"},
+    {name:"Sheet music, epic", price:"500 gp", qty:"Only 1 copy, ever", desc:"A truly revolutionary piece, will change everything"},
+    {name:"Siren song lyre", price:"5,000 gp", qty:"Only 1, ever", desc:""}
+  ]
+},
+"Spell scrolls and tomes": {
+  "Atrocious": [
+    {name:"Spell scroll, fake", price:"25 sp", qty:"1d4", desc:"A DC 10 Investigation check reveals it to be fake"}
+  ],
+  "Poor": [
+    {name:"Book, blank", price:"25 gp", qty:"1d4 × 3", desc:"Suitable for writing or drawing; won’t hold spells"},
+    {name:"Calligrapher’s supplies", price:"10 gp", qty:"1d4 × 2", desc:""},
+    {name:"Case, scroll", price:"1 gp", qty:"1d4 × 5", desc:""},
+    {name:"Ink", price:"10 gp / bottle", qty:"1d4 bottles", desc:""},
+    {name:"Ink pen", price:"2 cp", qty:"1d4 × 2", desc:""},
+    {name:"Paper", price:"2 sp / sheet", qty:"1d4 × 20 sheets", desc:""},
+    {name:"Parchment", price:"1 sp / sheet", qty:"1d4 × 20 sheets", desc:""},
+    {name:"Spellbook", price:"50 gp", qty:"1d4 × 5", desc:"Empty; suitable for holding spells"}
+  ],
+  "Medium": [
+    {name:"Enduring spellbook", price:"100 gp", qty:"1d4", desc:"Empty; not damaged by fire, water, or age"},
+    {name:"Glow ink", price:"50 gp / bottle", qty:"1d4 – 1 bottles", desc:"Glows faintly, indefinitely; can be seen in darkness"},
+    {name:"Paper, enduring", price:"2 gp / sheet", qty:"1d4 × 5 sheets", desc:"Not damaged by fire, water, or age"},
+    {name:"Ritual scroll, 1st-level", price:"50 gp", qty:"1d4", desc:"Contains a random 1st-level ritual spell, can be copied"},
+    {name:"Ritual scroll, 2nd-level", price:"250 gp", qty:"1d4", desc:"Contains a random 2nd-level ritual spell, can be copied"},
+    {name:"Ritual scroll, 3rd-level", price:"250 gp", qty:"1d4", desc:"Contains a random 3rd-level ritual spell, can be copied"},
+    {name:"Scroll satchel", price:"100 gp", qty:"1d4 – 1", desc:"Holds up to 30 scrolls in an extra-dimensional space; can draw or stow a scroll using a bonus action"},
+    {name:"Spell scroll, cantrip", price:"50 gp", qty:"1d4 × 5", desc:"Contains a random cantrip, can be copied"},
+    {name:"Spell scroll, 1st-level", price:"50 gp", qty:"1d4 × 4", desc:"Contains a random 1st-level spell, can be copied"},
+    {name:"Spell scroll, 2nd-level", price:"250 gp", qty:"1d4 × 4", desc:"Contains a random 2nd-level spell, can be copied"},
+    {name:"Spell scroll, 3rd-level", price:"250 gp", qty:"1d4 × 3", desc:"Contains a random 3rd-level spell, can be copied"},
+    {name:"Spell: Identify", price:"20 gp", qty:"3 spells / day", desc:"Reveals the properties of a magic item"},
+    {name:"Spell: Illusory script", price:"30 gp", qty:"3 spells / day", desc:"Writes a magically-coded message"},
+    {name:"Spell: Knock", price:"40 gp", qty:"3 spells / day", desc:"Opens a locked object"},
+    {name:"Spell: Mage armor", price:"10 gp", qty:"3 spells / day", desc:"Target’s base AC becomes 13 + its Dex modifier"}
+  ],
+  "Good": [
+    {name:"Arcane grimoire, +1", price:"500 gp", qty:"Only 1, ever", desc:"Wizard only; improves Arcane Recovery"},
+    {name:"Copypaper", price:"50 gp / sheet", qty:"1d4 sheets", desc:"Press to a piece of non-magical paper: permanently becomes a copy of that paper and is no longer magical"},
+    {name:"Hat of wizardry", price:"100 gp", qty:"Only 1, ever", desc:"Wizard only; attempt to cast extra cantrips"},
+    {name:"Paper bird", price:"250 gp", qty:"1d4 × 2", desc:"Carries a message of up to 50 words to a recipient"},
+    {name:"Paper of folding", price:"100 gp", qty:"1d4 – 1", desc:"Action: Can be folded into (or unfolded from) a working replica of any non-magical item that costs 5 gp or less and is held in one hand"},
+    {name:"Quill of scribing", price:"100 gp", qty:"1d4 – 1", desc:"Action: Writes (or stops writing) what you say for up to 1hr. collectively per day"},
+    {name:"Ritual scroll, 4th-level", price:"2,500 gp", qty:"1d4 – 1", desc:"Contains a random 4th-level ritual spell, can be copied"},
+    {name:"Ritual scroll, 5th-level", price:"2,500 gp", qty:"1d4 – 1", desc:"Contains a random 5th-level ritual spell, can be copied"},
+    {name:"Ritual scroll, 6th-level", price:"25,000 gp", qty:"1d4 – 2", desc:"Contains a random 6th-level ritual spell, can be copied"},
+    {name:"Scroll of protection, any", price:"2,500 gp", qty:"1d4 × 3", desc:"Can be used by anyone; protects against a creature type"},
+    {name:"Spell scroll, 4th-level", price:"2,500 gp", qty:"1d4 × 3", desc:"Contains a random 4th-level spell, can be copied"},
+    {name:"Spell scroll, 5th-level", price:"2,500 gp", qty:"1d4 × 2", desc:"Contains a random 5th-level spell, can be copied"},
+    {name:"Spell scroll, 6th-level", price:"25,000 gp", qty:"1d4 × 2", desc:"Contains a random 6th-level spell, can be copied"},
+    {name:"Spell: Legend lore", price:"770 gp", qty:"3 spells / day", desc:"Reveals details about important person, place, or thing"},
+    {name:"Spell: Skywrite", price:"40 gp", qty:"3 spells / day", desc:"Up to 10 words appear in the sky"},
+    {name:"Spell: Tongues", price:"90 gp", qty:"3 spells / day", desc:"Target understands all languages"}
+  ],
+  "Excellent": [
+    {name:"Backup spellbook", price:"500 gp", qty:"1d4 – 1", desc:"Press to a spellbook: permanently becomes a copy of that spellbook and is no longer magical"},
+    {name:"Fulminating treatise", price:"5,000 gp", qty:"Only 1, ever", desc:"Wizard only; holds spells, deals more spell damage"},
+    {name:"Heart-weaver’s primer", price:"5,000 gp", qty:"Only 1, ever", desc:"Wizard only; holds spells, empowers enchantment"},
+    {name:"Manual of golems, clay", price:"25,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Spell scroll, 7th-level", price:"25,000 gp", qty:"1d4 – 1", desc:"Contains a random 7th-level spell, can be copied"},
+    {name:"Spell scroll, 8th-level", price:"25,000 gp", qty:"1d4 – 2", desc:"Contains a random 8th-level spell, can be copied"}
+  ]
+},
+"Tattoos": {
+  "Atrocious": [
+    {name:"Ink", price:"10 gp / bottle", qty:"1d4 bottles", desc:"Suitable for writing or applying tattoos"},
+    {name:"Ink pen", price:"2 cp", qty:"1d4", desc:""},
+    {name:"Needle", price:"2 cp", qty:"1d4 × 50", desc:"Suitable for applying tattoos"},
+    {name:"Tattoo, simple mundane", price:"5 sp", qty:"Unlimited", desc:"Basic shapes and forms; no larger than 1/4 sq. ft."},
+    {name:"Tattoo, temporary", price:"5 cp", qty:"Unlimited", desc:"Drawn on; lasts 24 hrs. or until it touches water"}
+  ],
+  "Poor": [
+    {name:"Healer’s kit", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Oil", price:"1 sp / flask", qty:"1d4 × 2 flasks", desc:"Suitable for both muscles and lanterns"},
+    {name:"Soap", price:"2 cp", qty:"1d4 × 2", desc:""},
+    {name:"Tattoo, regular mundane", price:"5 gp", qty:"Unlimited", desc:"Semi-complex figures; no larger than 1/2 sq. ft."},
+    {name:"Tattooing supplies", price:"10 gp", qty:"1d4 × 2 sets", desc:"Artisan’s tools for tattoo artists; inks, needles, cloth, etc."}
+  ],
+  "Medium": [
+    {name:"Barrier tattoo, small", price:"500 gp", qty:"3 / day", desc:"Grants an AC equal to 12 + your Dexterity modifier"},
+    {name:"Calligrapher’s supplies", price:"10 gp", qty:"1d4", desc:""},
+    {name:"Cleansing stone", price:"100 gp", qty:"Only 1, ever", desc:"Use an action while touching: cleanses grime on you"},
+    {name:"Glow ink", price:"50 gp / bottle", qty:"1d4 – 1 bottles", desc:"Glows faintly, indefinitely; can be seen in darkness"},
+    {name:"Illuminator’s tattoo", price:"100 gp", qty:"3 / day", desc:"Can write with your finger, make writing invisible"},
+    {name:"Masquerade tattoo", price:"100 gp", qty:"3 / day", desc:"Changes shape, casts disguise self 1/day"},
+    {name:"Moodmark paint", price:"100 gp", qty:"1d4 – 1", desc:"When dabbed on face, changes color with mood"},
+    {name:"Spellwrought tattoo, cantrip", price:"50 gp", qty:"3 / day", desc:"Casts a specific cantrip once, then vanishes"},
+    {name:"Spellwrought tattoo, 1st-level", price:"50 gp", qty:"3 / day", desc:"Casts a specific 1st-level spell once, then vanishes"},
+    {name:"Tattoo, complex mundane", price:"25 gp", qty:"Unlimited", desc:"Scenes with multiple colors, figures, and designs; no larger than 1 sq. ft."},
+    {name:"Tattoo, magical focus", price:"100 gp", qty:"3 / day", desc:"Counts as an arcane focus, druidic focus, or holy symbol"},
+    {name:"Tattoo removal, mundane", price:"50 gp", qty:"3 / day", desc:"Magically removes up to 1 sq ft. of mundane tattoo"}
+  ],
+  "Good": [
+    {name:"Barrier tattoo, medium", price:"5,000 gp", qty:"3 / day", desc:"Grants an AC equal to 15 + your Dex. modifier (max +2)"},
+    {name:"Cloth, linen", price:"5 gp / sq. yd.", qty:"1d4 sq. yds.", desc:"White or beige cloth suitable for bandages"},
+    {name:"Coiling grasp tattoo", price:"500 gp", qty:"3 / day", desc:"Conjures tendrils that grapple a creature"},
+    {name:"Eldritch claw tattoo", price:"500 gp", qty:"3 / day", desc:"Empowers unarmed strikes and weapon attacks"},
+    {name:"Ethereal wave tattoo", price:"500 gp", qty:"3 / day", desc:"Action: casts invisibility on self 1/day"},
+    {name:"Ghost step tattoo", price:"500 gp", qty:"3 / day", desc:"Allows you to become incorporeal 3/day"},
+    {name:"Mermaid’s tale tattoo", price:"500 gp", qty:"3 / day", desc:"Grants a swim speed of 60 ft., and can speak Aquan"},
+    {name:"Spellwrought tattoo, 2nd-level", price:"250 gp", qty:"3 / day", desc:"Casts a specific 2nd-level spell once, then vanishes"},
+    {name:"Spellwrought tattoo, 3rd-level", price:"250 gp", qty:"3 / day", desc:"Casts a specific 3rd-level spell once, then vanishes"},
+    {name:"Tattoo, animated", price:"100 gp", qty:"3 / day", desc:"Images move by themselves; no larger than 1 sq. ft."},
+    {name:"Tattoo, artistic mundane", price:"125 gp", qty:"Unlimited", desc:"Gorgeous, a true work of art; no larger than 2 sq. ft."},
+    {name:"Tattoo removal, magical", price:"250 gp", qty:"3 / day", desc:"Magically removes a single magical tattoo"}
+  ],
+  "Excellent": [
+    {name:"Absorbing tattoo, any", price:"50,000 gp", qty:"3 / day", desc:"Absorbs damage of a chosen type 1/day"},
+    {name:"Barrier tattoo, large", price:"50,000 gp", qty:"3 / day", desc:"Grants an AC of 18"},
+    {name:"Blood fury tattoo", price:"500,000 gp", qty:"Only 1, ever", desc:"Grants crit on 19-20, extra damage, and react. attacks"},
+    {name:"Eternal mountain tattoo", price:"5,000 gp", qty:"3 / day", desc:"Action: casts stoneskin on self 1/day"},
+    {name:"Infernal brand tattoo", price:"5,000 gp", qty:"3 / day", desc:"1 hr. ritual: summon imp that obeys you; only 1 at a time"},
+    {name:"Lifewell tattoo", price:"5,000 gp", qty:"3 / day", desc:"Resist necrotic; grants benefits of death ward 1/day"},
+    {name:"Molten bronze skin, any", price:"5,000 gp*", qty:"Only 1, ever", desc:"Add base cost of the nonmagical armor to item’s price"},
+    {name:"Nolzur’s marvelous pigments", price:"25,000 gp", qty:"Only 1 set, ever", desc:"Creates paintings that become reality"},
+    {name:"Oil of etherealness", price:"2,500 gp", qty:"1d4 – 1", desc:"Confers the effects of the etherealness spell"},
+    {name:"Shadowfell brand tattoo", price:"50,000 gp", qty:"3 / day", desc:"Adv. on Stealth; reduce damage by half 1/day"},
+    {name:"Spellwrought tattoo, 4th-level", price:"2,500 gp", qty:"3 / day", desc:"Casts a specific 4th-level spell once, then vanishes"},
+    {name:"Spellwrought tattoo, 5th-level", price:"2,500 gp", qty:"3 / day", desc:"Casts a specific 5th-level spell once, then vanishes"},
+    {name:"Tattoo, masterwork mundane", price:"600 gp", qty:"Unlimited", desc:"Utterly unique with impossible detail and precision; can cover entire body"}
+  ]
+},
+"Thieving supplies": {
+  "Atrocious": [
+    {name:"Book, “How to Steal”", price:"25 gp", qty:"Only 1 copy, ever", desc:"The outside is locked (DC 15), and the inside is blank"},
+    {name:"Pole, 10-foot", price:"5 cp", qty:"1d4 × 4", desc:""},
+    {name:"Sack", price:"1 cp", qty:"1d4 × 5", desc:"Holds up to 1 cu. ft., or 30 lbs."}
+  ],
+  "Poor": [
+    {name:"Blowgun", price:"10 gp", qty:"1d4 × 2", desc:"1 piercing; loading, ranged (25/100)"},
+    {name:"Bullet, sling", price:"4 cp / 20", qty:"1d4 × 20", desc:""},
+    {name:"Chalk", price:"1 cp / piece", qty:"1d4 × 2 pieces", desc:"Comes in a variety of colors; useful for marking signs"},
+    {name:"Climber’s kit", price:"25 gp", qty:"1d4 × 2", desc:""},
+    {name:"Dagger", price:"2 gp", qty:"1d4 × 4", desc:"1d4 piercing; finesse, light, thrown (20/60)"},
+    {name:"Dreamlily (drug)", price:"10 gp / dose", qty:"1d4 × 2 doses", desc:"Highly addictive, significantly reduces pain"},
+    {name:"Grappling hook", price:"2 gp", qty:"1d4 × 2", desc:""},
+    {name:"Ladder, 10-foot", price:"1 sp", qty:"1d4", desc:""},
+    {name:"Needles, blowgun", price:"4 sp / 20", qty:"1d4 × 20", desc:""},
+    {name:"Rope, hempen", price:"1 gp / 50 ft.", qty:"1d4 × 50 ft.", desc:""},
+    {name:"Sling", price:"1 sp", qty:"1d4 × 2", desc:"1d4 bludgeoning; ranged (30/120)"},
+    {name:"Thieves’ tools", price:"25 gp", qty:"1d4 × 2", desc:""},
+    {name:"Torch", price:"1 cp", qty:"1d4 × 5", desc:""}
+  ],
+  "Medium": [
+    {name:"Arrow", price:"1 gp / 20", qty:"1d4 × 20", desc:""},
+    {name:"Ball bearings", price:"1 gp / 1,000", qty:"1d4 × 2,000", desc:""},
+    {name:"Bolt, crossbow", price:"1 gp / 20", qty:"1d4 × 20", desc:""},
+    {name:"Crowbar", price:"2 gp", qty:"1d4 × 3", desc:""},
+    {name:"Caltrops", price:"1 gp / 20", qty:"1d4 × 40", desc:""},
+    {name:"Crossbow, hand", price:"75 gp", qty:"1d4 × 2", desc:"1d6 piercing; light, loading, ranged (30/120)"},
+    {name:"Dice set", price:"1 sp", qty:"1d4 × 2", desc:"Also available weighted, for 4 sp"},
+    {name:"Disguise kit", price:"25 gp", qty:"1d4 × 2", desc:""},
+    {name:"Forgery kit", price:"15 gp", qty:"1d4", desc:""},
+    {name:"Playing card set", price:"5 sp", qty:"1d4 × 3", desc:"Also available marked, for 2 gp"},
+    {name:"Poison, basic", price:"100 gp / vial", qty:"1d4 × 2 vials", desc:"Injury; can inflict 1d4 poison damage"},
+    {name:"Poisoner’s kit", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Portable ram", price:"4 gp", qty:"1d4", desc:""},
+    {name:"Rapier", price:"25 gp", qty:"1d4", desc:"1d8 piercing; finesse"},
+    {name:"Shortbow", price:"25 gp", qty:"1d4 × 2", desc:"1d6 piercing; ranged (80/320), two-handed"},
+    {name:"Shortsword", price:"10 gp", qty:"1d4", desc:"1d6 piercing; finesse, light"},
+    {name:"Signal whistle", price:"5 cp", qty:"1d4 × 2", desc:""}
+  ],
+  "Good": [
+    {name:"Bag of holding", price:"500 gp", qty:"Only 1, ever", desc:"Holds 64 cu. ft., or 500 lbs; always weighs 15 lbs."},
+    {name:"Boots of false tracks", price:"100 gp", qty:"Only 1 set, ever", desc:"Makes your tracks appear as another humanoid’s"},
+    {name:"Charlatan’s die", price:"100 gp", qty:"1d4 – 1", desc:"You control what number it rolls"},
+    {name:"Cloak of many fashions", price:"100 gp", qty:"Only 1, ever", desc:"Can be made to appear how you wish"},
+    {name:"Deck of illusions", price:"500 gp", qty:"Only 1, ever", desc:"Conjures a random illusion at a point you choose"},
+    {name:"Drow poison", price:"200 gp / dose", qty:"1d4 – 1 doses", desc:"Injury; can render target unconscious"},
+    {name:"Essence of ether", price:"300 gp / dose", qty:"1d4 – 1 doses", desc:"Inhailed; can render affected creatures unconscious"},
+    {name:"Eversmoking bottle", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Feather token", price:"50 gp", qty:"1d4", desc:"Allows you to fall safely once, then loses its magic"},
+    {name:"Hat of disguise", price:"500 gp", qty:"Only 1, ever", desc:"Allows you to cast disguise self at will"},
+    {name:"Junk dagger", price:"100 gp", qty:"Only 1, ever", desc:"Adds +1 to attack/damage, but breaks on a nat 1"},
+    {name:"Mystery key", price:"50 gp", qty:"1d4 – 2", desc:"Has a 5% chance to unlock any door, then disappear"},
+    {name:"Pole of collapsing", price:"100 gp", qty:"1d4 – 2", desc:"Can collapse to 1 ft., or expand to 10 ft."},
+    {name:"Potion of climbing", price:"50 gp", qty:"1d4", desc:"Grants a climbing speed for 1 hour"},
+    {name:"Serpent venom", price:"200 gp / dose", qty:"1d4 – 1 doses", desc:"Injury; can inflict 3d6 poison damage"},
+    {name:"Spyglass", price:"1,000 gp", qty:"1d4", desc:""},
+    {name:"Truth serum", price:"150 gp / dose", qty:"1d4 – 1 doses", desc:"Injested; target cannot knowingly speak a lie"}
+  ],
+  "Excellent": [
+    {name:"Amulet of proof against detection and location", price:"500 gp", qty:"Only 1, ever", desc:"Grants immunity to divination and scrying"},
+    {name:"Boots of striding and springing", price:"500 gp", qty:"Only 1 set, ever", desc:""},
+    {name:"Bracer of flying daggers", price:"5,000 gp", qty:"Only 1, ever", desc:"Conjures an infinite amount of magical daggers"},
+    {name:"Bracers of archery", price:"500 gp", qty:"Only 1 set, ever", desc:"Grants prof. and +2 to damage with bows"},
+    {name:"Cloak of elvenkind", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Dagger of blindsight", price:"5,000 gp", qty:"Only 1, ever", desc:"Grants blindsight out to 30 ft."},
+    {name:"Dagger of venom", price:"5,000 gp", qty:"Only 1, ever", desc:"+1 to attk./dmg.; can make an injury poison"},
+    {name:"Gloves of thievery", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Rope of climbing", price:"500 gp", qty:"Only 1, ever", desc:"Can animate to help you climb automatically"},
+    {name:"Spies’ murmur", price:"500 gp", qty:"1d4 + 1", desc:"Allows silent communication, and to share hearing"},
+    {name:"Wyvern poison", price:"1,200 gp / dose", qty:"1d4 – 2 doses", desc:"Injury; can inflict 7d6 poison damage"}
+  ]
+},
+"Tools": {
+  "Atrocious": [
+    {name:"Bucket", price:"5 cp", qty:"1d4 × 2", desc:"Holds 3 gal. or ½ cu. ft."},
+    {name:"Shovel", price:"2 gp", qty:"1d4 × 2", desc:""}
+  ],
+  "Poor": [
+    {name:"Basket", price:"4 sp", qty:"1d4 × 5", desc:"1 ft. wide × 1 ft. tall; holds 40 lbs. or 2 cubic ft."},
+    {name:"Block and tackle", price:"1 gp", qty:"1d4 × 2", desc:""},
+    {name:"Candle", price:"1 cp", qty:"1d4 × 10", desc:"Comes in a variety of colors"},
+    {name:"Chalk", price:"1 cp / piece", qty:"1d4 × 5 pieces", desc:"Comes in a variety of colors"},
+    {name:"Dagger", price:"2 gp", qty:"1d4", desc:"1d4 piercing; finesse, light, thrown (20/60)"},
+    {name:"Fishing tackle", price:"1 gp", qty:"1d4 × 2", desc:""},
+    {name:"Hammer", price:"1 gp", qty:"1d4 × 2", desc:""},
+    {name:"Hammer, light", price:"2 gp", qty:"1d4 × 2", desc:"1d4 bludgeoning; light, thrown (20/60)"},
+    {name:"Ladder, 10-foot", price:"1 sp", qty:"1d4 × 2", desc:""},
+    {name:"Lamp", price:"1 cp", qty:"1d4 × 2", desc:""},
+    {name:"Pick, miner’s", price:"2 gp", qty:"1d4 × 2", desc:""},
+    {name:"Plank, wood", price:"1 cp / plank", qty:"1d4 × 15 planks", desc:"Measure 2 in. × 4 in. × 5 ft. each"},
+    {name:"Piton", price:"5 cp", qty:"1d4 × 10", desc:""},
+    {name:"Pole, 10-foot", price:"5 cp", qty:"1d4 × 2", desc:""},
+    {name:"Pot, iron", price:"2 gp", qty:"1d4 × 2", desc:"Holds 1 gal."},
+    {name:"Rope, hempen", price:"1 gp / 50 ft.", qty:"1d4 × 50 ft.", desc:""},
+    {name:"Sickle", price:"1 gp", qty:"1d4 × 2", desc:"1d4 slashing; light"},
+    {name:"Spikes, iron", price:"1 gp / 10", qty:"1d4 × 40", desc:""},
+    {name:"Torch", price:"5 sp", qty:"1d4 × 4", desc:""}
+  ],
+  "Medium": [
+    {name:"Abacus", price:"2 gp", qty:"1d4 × 2", desc:""},
+    {name:"Ball bearings", price:"1 gp / 1,000", qty:"1d4 × 2,000", desc:""},
+    {name:"Carpenter’s tools", price:"8 gp", qty:"1d4 × 2", desc:""},
+    {name:"Chain", price:"5 gp / 10 ft.", qty:"1d4 × 20 ft.", desc:""},
+    {name:"Cobbler’s tools", price:"5 gp", qty:"1d4 × 2", desc:""},
+    {name:"Cook’s utensils", price:"1 gp", qty:"1d4 × 2", desc:""},
+    {name:"Crowbar", price:"2 gp", qty:"1d4", desc:""},
+    {name:"Hammer, sledge", price:"2 gp", qty:"1d4 × 2", desc:""},
+    {name:"Handaxe", price:"5 gp", qty:"1d4 × 2", desc:"1d6 slashing; light, thrown (20/60)"},
+    {name:"Hunting trap", price:"5 gp", qty:"1d4", desc:"DC 13 Dex check vs. 1d4 piercing and getting stuck"},
+    {name:"Lantern, bullseye", price:"10 gp", qty:"1d4", desc:""},
+    {name:"Lantern, hooded", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Lock", price:"10 gp", qty:"1d4", desc:"Key included"},
+    {name:"Mason’s tools", price:"10 gp", qty:"1d4 × 2", desc:""},
+    {name:"Mirror, steel", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Net", price:"1 gp", qty:"1d4 × 2", desc:"Special, thrown (5/15)"},
+    {name:"Oil", price:"1 sp / flask", qty:"1d4 × 2 flasks", desc:""},
+    {name:"Potter’s tools", price:"10 gp", qty:"1d4 × 2", desc:""},
+    {name:"Scale, merchant’s", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Smith’s tools", price:"20 gp", qty:"1d4 × 2", desc:""},
+    {name:"Tinderbox", price:"5 sp", qty:"1d4 × 2", desc:""},
+    {name:"Wax, sealing", price:"5 sp", qty:"1d4 × 5", desc:""},
+    {name:"Weaver’s tools", price:"1 gp", qty:"1d4 × 2", desc:""},
+    {name:"Woodcarver’s tools", price:"1 gp", qty:"1d4 × 2", desc:""}
+  ],
+  "Good": [
+    {name:"Alchemist’s supplies", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Candle of the deep", price:"100 gp", qty:"1d4 – 2", desc:"Able to burn underwater"},
+    {name:"Chest of preserving", price:"100 gp", qty:"Only 1, ever", desc:"Items inside don’t age or decay; holds 3.75 cubic ft."},
+    {name:"Ear horn of hearing", price:"100 gp", qty:"1d4 – 2", desc:"Held to ear: suppresses the deafened condition"},
+    {name:"Everbright lantern", price:"100 gp", qty:"1d4 – 1", desc:"Instead holds a continual flame, outside of Eberron"},
+    {name:"Glassblower’s tools", price:"30 gp", qty:"1d4", desc:""},
+    {name:"Herbalism kit", price:"5 gp", qty:"1d4 × 2", desc:""},
+    {name:"Jeweler’s tools", price:"25 gp", qty:"1d4", desc:""},
+    {name:"Lantern of revealing", price:"500 gp", qty:"Only 1, ever", desc:"Reveals invisible creatures and objects"},
+    {name:"Lock of trickery", price:"100 gp", qty:"1d4 – 2", desc:"Dex checks made to pick lock have disadv."},
+    {name:"Magnifying glass", price:"100 gp", qty:"1d4 – 1", desc:""},
+    {name:"Navigator’s tools", price:"25 gp", qty:"1d4", desc:""},
+    {name:"Painter’s supplies", price:"10 gp", qty:"1d4 × 2", desc:""},
+    {name:"Pole of angling", price:"100 gp", qty:"1d4 – 2", desc:"Transforms between a 10 ft. pole and a fishing pole"},
+    {name:"Pole of collapsing", price:"100 gp", qty:"1d4 – 2", desc:"Can collapse to 1 ft., or expand to 10 ft."},
+    {name:"Rain catcher, tarp", price:"1 gp", qty:"1d4 – 1", desc:"Catches 2 gal. of water per inch of rain; holds 8 gal."},
+    {name:"Rope of mending", price:"100 gp", qty:"1d4 – 1", desc:"If cut, can be magically mended with a word"},
+    {name:"Tinker’s tools", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Spyglass", price:"1,000 gp", qty:"1d4 – 1", desc:""}
+  ],
+  "Excellent": [
+    {name:"All-purpose tool, +1", price:"500 gp", qty:"Only 1, ever", desc:"Artificer only; Changes into any tools, casts cantrips"},
+    {name:"Broom of flying", price:"500 gp", qty:"Only 1, ever", desc:"Fly speed of 50 ft., or 30 ft. if carrying over 200 lbs."},
+    {name:"Gnomish tinderbox", price:"50 gp", qty:"1d4", desc:"Can instantly set alight small flammable objects"},
+    {name:"Rope of climbing", price:"500 gp", qty:"Only 1, ever", desc:"Can animate to help you climb automatically"},
+    {name:"Rope of entanglement", price:"5,000 gp", qty:"Only 1, ever", desc:"Can animate to entangle a creature"}
+  ]
+},
+"Vehicles and transportation": {
+  "Atrocious": [
+    {name:"Bit and bridle", price:"2 gp", qty:"1d4 × 2", desc:""},
+    {name:"Nag horse", price:"5 cp", qty:"1d4", desc:"Has 8 Str, 1 hp, and a movement speed of 20 ft."}
+  ],
+  "Poor": [
+    {name:"Cart", price:"15 gp", qty:"1d4", desc:""},
+    {name:"Coach cab, rural ride", price:"3 cp / mile", qty:"", desc:"A land-bound ride between towns or cities"},
+    {name:"Coach cab, urban ride", price:"1 cp", qty:"", desc:"A land-bound ride within a large city"},
+    {name:"Feed, animal", price:"5 cp / day", qty:"1d4 × 30 days", desc:""},
+    {name:"Messenger service", price:"2 cp / mile", qty:"", desc:"Carries a letter, or a package not exceeding 10 lbs."},
+    {name:"Mule", price:"8 gp", qty:"1d4 × 2", desc:"May instead be a donkey"},
+    {name:"Ox", price:"15 gp", qty:"1d4 × 2", desc:""},
+    {name:"Pony", price:"30 gp", qty:"1d4 × 2", desc:""},
+    {name:"Rowboat", price:"50 gp", qty:"1d4", desc:"Only if near a body of water"},
+    {name:"Saddle, pack", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Sled", price:"20 gp", qty:"1d4", desc:""}
+  ],
+  "Medium": [
+    {name:"Camel", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Canoe", price:"50 gp", qty:"1d4", desc:"Only if near a body of water"},
+    {name:"Carpenter’s tools", price:"8 gp", qty:"1d4", desc:""},
+    {name:"Cartographer’s tools", price:"15 gp", qty:"1d4", desc:""},
+    {name:"Case, map or scroll", price:"1 gp", qty:"1d4 × 5", desc:""},
+    {name:"Chariot", price:"250 gp", qty:"1d4", desc:""},
+    {name:"Dogsled", price:"20 gp", qty:"2d4", desc:"Moves across snow if pulled by one or more dogs"},
+    {name:"Draft horse", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Feather token", price:"50 gp", qty:"1d4 × 2", desc:"Allows you to fall safely once, then loses its magic"},
+    {name:"Keelboat", price:"3,000 gp", qty:"1d4 × 2", desc:"Only if near a body of water"},
+    {name:"Navigator’s tools", price:"25 gp", qty:"1d4", desc:"Only if near a body of water"},
+    {name:"Riding horse", price:"75 gp", qty:"1d4", desc:""},
+    {name:"Saddle, riding", price:"10 gp", qty:"1d4", desc:""},
+    {name:"Saddlebags", price:"4 gp", qty:"1d4", desc:""},
+    {name:"Ship’s passage, sea", price:"1 sp / mile", qty:"", desc:"Passage on a sea ship; only if near a body of water"},
+    {name:"Sled dog", price:"50 gp", qty:"1d4 × 2", desc:"Can pull 360 lbs. on a dogsled for 1 hr., before SR"},
+    {name:"Wagon", price:"35 gp", qty:"1d4", desc:""},
+    {name:"Woodcarver’s tools", price:"1 gp", qty:"1d4", desc:""}
+  ],
+  "Good": [
+    {name:"Backpack parachute", price:"100 gp", qty:"1d4 × 2", desc:"Wearer can fall safely after 60 ft.; 10 mins. to repack"},
+    {name:"Carriage", price:"100 gp", qty:"1d4", desc:""},
+    {name:"Flying chariot", price:"5,000 gp", qty:"Only 1, ever", desc:"Flies when pulled by a flying creature"},
+    {name:"Folding boat", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Horseshoes of speed", price:"5,000 gp", qty:"Only 1 set, ever", desc:"Increases a horse’s movement speed by 30 ft."},
+    {name:"Longship", price:"10,000 gp", qty:"1d4 – 1", desc:"Only if near a body of water"},
+    {name:"Orb of direction", price:"100 gp", qty:"Only 1, ever", desc:"Action: learn which direction is north"},
+    {name:"Quaal’s feather token, anchor", price:"2,500 gp", qty:"Only 1, ever", desc:"Freezes a boat or vessel in place for 24 hrs."},
+    {name:"Quaal’s feather token, swan boat", price:"2,500 gp", qty:"Only 1, ever", desc:"Conjures a self-propelled swan boat that holds 32 medium creatures for 24 hrs."},
+    {name:"Sailing ship", price:"10,000 gp", qty:"1d4 – 1", desc:"Only if near a body of water"},
+    {name:"Saddle, military", price:"20 gp", qty:"1d4", desc:""},
+    {name:"Ship’s passage, air", price:"5 sp / mile", qty:"", desc:"Passage on an airship; only if air travel is common"},
+    {name:"Ship upgrade, figurehead", price:"15,000 gp", qty:"", desc:"Takes 1d4 weeks; requires ship worth ≥ 10,000 gp"},
+    {name:"Ship upgrade, misc.", price:"15,000 gp", qty:"", desc:"Takes 1d4 weeks; requires ship worth ≥ 10,000 gp"},
+    {name:"Ship upgrade, movement", price:"15,000 gp", qty:"", desc:"Takes 1d4 weeks; requires ship worth ≥ 10,000 gp"},
+    {name:"Spyglass", price:"1,000 gp", qty:"1d4", desc:""},
+    {name:"Warhorse", price:"400 gp", qty:"1d4", desc:""},
+    {name:"Wheel of wind and water", price:"500 gp", qty:"Only 1, ever", desc:"If not in Eberron, does not require Mark of Storm"}
+  ],
+  "Excellent": [
+    {name:"Airship", price:"20,000 gp", qty:"1d4 – 2", desc:"Only if air travel is common"},
+    {name:"Carpet of flying", price:"50,000 gp", qty:"Only 1, ever", desc:"Size of the carpet is determined by the DM"},
+    {name:"Galley", price:"30,000 gp", qty:"1d4 – 2", desc:"Only if near a body of water"},
+    {name:"Horseshoes of a zephyr", price:"50,000 gp", qty:"Only 1 set, ever", desc:"Allows a horse to float, and ride across water or lava"},
+    {name:"Ship upgrade, hull", price:"15,000 gp", qty:"", desc:"Takes 1d4 weeks; requires ship worth ≥ 10,000 gp"},
+    {name:"Ship upgrade, weapons", price:"15,000 gp", qty:"", desc:"Takes 1d4 weeks; requires ship worth ≥ 10,000 gp"},
+    {name:"Warship", price:"25,000 gp", qty:"1d4 – 2", desc:"Only if near a body of water"}
+  ]
+},
+"Weapons": {
+  "Atrocious": [
+    {name:"Club", price:"1 sp", qty:"1d4 × 2", desc:"1d4 bludgeoning; light"},
+    {name:"Greatclub", price:"2 sp", qty:"1d4", desc:"1d8 bludgeoning; two-handed"}
+  ],
+  "Poor": [
+    {name:"Arrow", price:"1 gp / 20", qty:"1d4 × 20", desc:""},
+    {name:"Blowgun", price:"10 gp", qty:"1d4 × 2", desc:"1 piercing; loading, ranged (25/100)"},
+    {name:"Bolt, crossbow", price:"1 gp / 20", qty:"1d4 × 20", desc:""},
+    {name:"Bullet, sling", price:"4 cp / 20", qty:"1d4 × 20", desc:""},
+    {name:"Crossbow, light", price:"25 gp", qty:"1d4 × 2", desc:"1d8 piercing; loading, two-handed, ranged (80/320)"},
+    {name:"Dagger", price:"2 gp", qty:"1d4 × 4", desc:"1d4 piercing; finesse, light, thrown (20/60)"},
+    {name:"Dart", price:"5 cp", qty:"1d4 × 10", desc:"1d4 piercing; finesse, ranged/thrown (20/60)"},
+    {name:"Hammer, light", price:"2 gp", qty:"1d4 × 3", desc:"1d4 bludgeoning; light, thrown (20/60)"},
+    {name:"Handaxe", price:"5 gp", qty:"1d4 × 3", desc:"1d6 slashing; light, thrown (20/60)"},
+    {name:"Javelin", price:"5 sp", qty:"1d4 × 10", desc:"1d6 piercing; thrown (30/120)"},
+    {name:"Mace", price:"5 gp", qty:"1d4 × 4", desc:"1d6 bludgeoning"},
+    {name:"Needles, blowgun", price:"4 sp / 20", qty:"1d4 × 20", desc:""},
+    {name:"Quarterstaff", price:"2 sp", qty:"1d4 × 2", desc:"1d6 bludgeoning; versatile (1d8)"},
+    {name:"Shortbow", price:"25 gp", qty:"1d4 × 2", desc:"1d6 piercing; ranged (80/320), two-handed"},
+    {name:"Sickle", price:"1 gp", qty:"1d4 × 2", desc:"1d4 slashing; light"},
+    {name:"Sling", price:"1 sp", qty:"1d4 × 2", desc:"1d4 bludgeoning; ranged (30/120)"},
+    {name:"Spear", price:"1 gp", qty:"1d4 × 5", desc:"1d6 piercing; thrown (20/60), versatile (1d8)"},
+    {name:"Whetstone", price:"1 cp", qty:"1d4 × 10", desc:""}
+  ],
+  "Medium": [
+    {name:"Battleaxe", price:"10 gp", qty:"1d4 × 2", desc:"1d8 slashing; versatile (1d10)"},
+    {name:"Bolt case, crossbow", price:"1 gp", qty:"1d4", desc:"Holds up to 20 bolts"},
+    {name:"Flail", price:"10 gp", qty:"1d4 × 2", desc:"1d8 bludgeoning"},
+    {name:"Glaive", price:"20 gp", qty:"1d4", desc:"1d10 slashing; heavy, reach, two-handed"},
+    {name:"Greataxe", price:"30 gp", qty:"1d4 × 2", desc:"1d12 slashing; heavy, two-handed"},
+    {name:"Greatsword", price:"50 gp", qty:"1d4 × 2", desc:"2d6 slashing; heavy, two-handed"},
+    {name:"Halberd", price:"20 gp", qty:"1d4 × 2", desc:"1d10 slashing; heavy, reach, two-handed"},
+    {name:"Lance", price:"10 gp", qty:"1d4 × 2", desc:"1d12 piercing; reach, special"},
+    {name:"Longbow", price:"50 gp", qty:"1d4 × 2", desc:"1d8 piercing; ranged (150/600), heavy, two-handed"},
+    {name:"Longsword", price:"15 gp", qty:"1d4 × 3", desc:"1d8 slashing; versatile (1d10)"},
+    {name:"Maul", price:"10 gp", qty:"1d4 × 2", desc:"2d6 bludgeoning; heavy, two-handed"},
+    {name:"Morningstar", price:"15 gp", qty:"1d4 × 3", desc:"1d8 piercing"},
+    {name:"Net", price:"1 gp", qty:"1d4", desc:"Special, thrown (5/15)"},
+    {name:"Pike", price:"5 gp", qty:"1d4 × 3", desc:"1d10 piercing; heavy, reach, two-handed"},
+    {name:"Quiver", price:"1 gp", qty:"1d4", desc:"Holds up to 20 arrows"},
+    {name:"Rapier", price:"25 gp", qty:"1d4 × 3", desc:"1d8 piercing; finesse"},
+    {name:"Scimitar", price:"25 gp", qty:"1d4 × 3", desc:"1d6 slashing; finesse, light"},
+    {name:"Sheath", price:"3 gp", qty:"1d4 × 2", desc:"Tooled leather holster for a dagger or sword"},
+    {name:"Shortsword", price:"10 gp", qty:"1d4 × 4", desc:"1d6 piercing; finesse, light"},
+    {name:"Smith’s tools", price:"20 gp", qty:"1d4", desc:""},
+    {name:"Trident", price:"5 gp", qty:"1d4", desc:"1d6 piercing; thrown (20/60), versatile (1d8)"},
+    {name:"War pick", price:"5 gp", qty:"1d4", desc:"1d8 piercing"},
+    {name:"Warhammer", price:"15 gp", qty:"1d4 × 2", desc:"1d8 bludgeoning; versatile (1d10)"},
+    {name:"Whip", price:"2 gp", qty:"1d4 × 2", desc:"1d4 slashing; finesse, reach"},
+    {name:"Yklwa", price:"1 gp", qty:"1d4", desc:"1d8 piercing; thrown (10/30)"}
+  ],
+  "Good": [
+    {name:"Ammunition, +1", price:"50 gp / ea.", qty:"1d4 × 10", desc:"Can be any piece of ammunition"},
+    {name:"Chatkcha", price:"2 gp", qty:"1d4", desc:"1d6 slashing; finesse, light, ranged/thrown (30/120)"},
+    {name:"Crossbow, hand", price:"75 gp", qty:"1d4 × 2", desc:"1d6 piercing; light, loading, ranged (30/120)"},
+    {name:"Crossbow, heavy", price:"50 gp", qty:"1d4", desc:"1d10 piercing; heavy, loading, two-handed, ranged (100/400)"},
+    {name:"Crossbow, light repeating", price:"150 gp", qty:"1d4 – 2", desc:"1d8 piercing; two-handed, ranged (40/160); has 6 shots, can be reloaded with an action"},
+    {name:"Gythka", price:"40 gp", qty:"1d4 – 1", desc:"1d8 slashing; reach, two-handed"},
+    {name:"Javelin of lightning", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Longbow, oversized", price:"150 gp", qty:"1d4 – 1", desc:"2d6 piercing; heavy, ranged (150/600), two-handed; requires 18 Str, attacks and deals damage with Str in place of Dex"},
+    {name:"Moon-touched sword, any", price:"100 gp*", qty:"1d4 – 1", desc:"Sheds bright light for 15 feet, dim light 15 feet beyond that; add base cost of the nonmagical weapon to item’s price"},
+    {name:"Scimitar, double-bladed", price:"100 gp", qty:"1d4 – 1", desc:"2d4 slashing; special, two-handed"},
+    {name:"Shortspear, hooked", price:"125 gp", qty:"1d4 – 1", desc:"1d4 piercing; light; on hit, can choose not to do damage, instead having target make a Str save (DC 8 + your Str + prof. bonus) or become prone"},
+    {name:"Storm boomerang", price:"500 gp", qty:"Only 1, ever", desc:"Instead recharges with a short rest"},
+    {name:"Veteran’s cane", price:"100 gp", qty:"Only 1, ever", desc:"Bonus action: Transforms into a mundane longsword"},
+    {name:"Walloping ammunition, any", price:"10 gp / ea.", qty:"1d4 × 10", desc:"A creature hit must succeed a DC 10 Str save or be prone; can be any piece of ammunition"},
+    {name:"Weapon, +1", price:"500 gp*", qty:"1d4 – 1", desc:"Add base cost of the nonmagical weapon to item’s price"},
+    {name:"Weapon of warning, any", price:"500 gp*", qty:"1d4 – 2", desc:"Add base cost of the nonmagical weapon to item’s price"}
+  ],
+  "Excellent": [
+    {name:"Ammunition, +2", price:"500 gp / ea.", qty:"1d4 × 10", desc:"Can be any piece of ammunition"},
+    {name:"Flame tongue, any", price:"5,000 gp*", qty:"Only 1, ever", desc:"Add base cost of the nonmagical weapon to item’s price"},
+    {name:"Frost brand, any", price:"50,000 gp*", qty:"Only 1, ever", desc:"Add base cost of the nonmagical weapon to item’s price"},
+    {name:"Oathbow", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Sword of sharpness, any", price:"50,000 gp*", qty:"Only 1, ever", desc:"Add base cost of the nonmagical weapon to item’s price"},
+    {name:"Two-birds sling", price:"5,000 gp", qty:"Only 1, ever", desc:"Shots can ricochet between targets"},
+    {name:"Vicious weapon, any", price:"5,000 gp*", qty:"Only 1, ever", desc:"Add base cost of the nonmagical weapon to item’s price"},
+    {name:"Weapon, +2", price:"5,000 gp*", qty:"1d4 – 2", desc:"Add base cost of the nonmagical weapon to item’s price"}
+  ]
+},
+"Witchcraft": {
+  "Atrocious": [
+    {name:"Bones", price:"5 gp / set", qty:"1d4 sets", desc:"Good for soup, and maybe even necromancy"},
+    {name:"Broom, mundane", price:"5 cp", qty:"1d4", desc:"Smells strongly of straw"},
+    {name:"Candle", price:"1 cp", qty:"1d4 × 10", desc:"Comes in a variety of colors"},
+    {name:"Dagger, ritual", price:"2 gp", qty:"1d4 × 2", desc:"Simple design, strange sigils engraved on the blade"},
+    {name:"Pot, iron", price:"2 gp", qty:"1d4", desc:"Holds 1 gal."},
+    {name:"Mistletoe", price:"1 gp / sprig", qty:"1d4 × 5 sprigs", desc:"Druidic focus; fresh and poisonous"}
+  ],
+  "Poor": [
+    {name:"Book, cookbook", price:"25 gp", qty:"1d4", desc:"Packed with delicious-sounding recipes"},
+    {name:"Candy", price:"1 sp / piece", qty:"1d4 × 20 pieces", desc:"Sweet and delicious, no nutritional value"},
+    {name:"Component pouch", price:"25 gp", qty:"1d4 × 2", desc:"Has tiny inner pockets for various components"},
+    {name:"Cook’s utensils", price:"1 gp", qty:"1d4 × 2", desc:""},
+    {name:"Crystal", price:"10 gp", qty:"1d4 × 2", desc:"Arcane focus; a shining bit of quartz or similar"},
+    {name:"Fungi", price:"3 cp / lb.", qty:"1d4 × 10 lbs.", desc:"Oysters, chanterelles, or similar; 1/4 day of food"},
+    {name:"Healer’s kit", price:"5 gp", qty:"1d4 × 2", desc:""},
+    {name:"Herbalism kit", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Herbs, common", price:"5 sp / lb.", qty:"1d4 × 10 lbs.", desc:"Ex: mint, sage; often used in common potions"},
+    {name:"Meal, modest", price:"3 sp / day", qty:"1d4 × 20 days", desc:"A hearty broth with real vegetables; 1 day of food"},
+    {name:"Meat", price:"3 sp / chunk", qty:"1d4 × 15 chunks", desc:"Beef, chicken, venison, or similar; 1/2 day of food"},
+    {name:"Merchant’s scale", price:"5 gp", qty:"1d4 × 2", desc:""},
+    {name:"Pie, large", price:"3 gp", qty:"1d4 × 2", desc:"Sweet or savory; 4 days of food"},
+    {name:"Pie, personal", price:"1 gp", qty:"1d4 × 4", desc:"Sweet or savory; 1 day of food"},
+    {name:"Spell: Cure wounds", price:"10 gp", qty:"3 spells / day", desc:"Cast at 1st-level; heals 1 creature for 1d8 + 3 hit points"},
+    {name:"Tea, blackroot tal", price:"1 sp / cup", qty:"1d4 × 10 cups", desc:"Bitter cinnamon taste, served hot with honey"},
+    {name:"Tea, blackthorn", price:"1 sp / cup", qty:"1d4 × 10 cups", desc:"A savory, earthy tisane that calms an upset stomach"},
+    {name:"Tea, yellowleaf", price:"1 sp / cup", qty:"1d4 × 10 cups", desc:"Robust and pale yellow, can remove clothing stains"}
+  ],
+  "Medium": [
+    {name:"Alchemist’s supplies", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Antitoxin", price:"50 gp / vial", qty:"1d4 × 2 vials", desc:""},
+    {name:"Arcane grimoire, +1", price:"500 gp", qty:"Only 1, ever", desc:"Wizard only; improves Arcane Recovery"},
+    {name:"Assassin’s blood", price:"150 gp / dose", qty:"1d4 + 1 doses", desc:"Injested; can inflict 1d12 poison damage"},
+    {name:"Bloodwell vial, +1", price:"500 gp", qty:"Only 1, ever", desc:"Sorcerer only; recover sorcery points with hit dice"},
+    {name:"Book, astrology", price:"50 gp", qty:"1d4 – 1", desc:"A complete collection of star signs and their meanings"},
+    {name:"Book, bestiary", price:"125 gp", qty:"1d4 – 1", desc:"Pertains to a specific type of creature found nearby"},
+    {name:"Book, herbalism", price:"75 gp", qty:"1d4 – 1", desc:"Depicts the practice of collecting and processing herbs"},
+    {name:"Book, local flora", price:"50 gp", qty:"1d4 – 1", desc:"Pictures and descriptions of common local plants"},
+    {name:"Book, medicine", price:"100 gp", qty:"1d4 – 1", desc:"Contains mundane cures for many common ailments"},
+    {name:"Herbs, uncommon", price:"5 gp / lb.", qty:"1d4 × 5 lbs.", desc:"Ex: horsetail, comfrey; for uncommon potions"},
+    {name:"Perfume of bewitching", price:"50 gp", qty:"1d4 – 2", desc:"Adv. on Cha. checks vs. humanoids ≤ CR 1 for 1 hr."},
+    {name:"Poison, basic", price:"100 gp / vial", qty:"1d4 × 2 vials", desc:"Injury; can inflict 1d4 poison damage"},
+    {name:"Poisoner’s kit", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Potion of growth", price:"250 gp", qty:"1d4 – 1", desc:"Grow (as with the enlarge/reduce spell) for 1d4 hrs."},
+    {name:"Potion of healing", price:"50 gp", qty:"1d4 × 3", desc:"Replenishes 2d4 + 2 hit points"},
+    {name:"Ryath root", price:"50 gp", qty:"1d4 × 2", desc:"Grants 2d4 temp. hit points; if you eat >1, poisoned"},
+    {name:"Spell: Lesser restoration", price:"40 gp", qty:"3 spells / day", desc:"Cures blindness, deafness, paralyzed, or poisoned"},
+    {name:"Spellbook", price:"50 gp", qty:"1d4", desc:"Empty; suitable for holding spells"},
+    {name:"Talking doll", price:"100 gp", qty:"Only 1, ever", desc:"Can be instructed to say up to 6 short phrases"},
+    {name:"Tarokka deck", price:"10 gp", qty:"1d4 – 1", desc:"Used to read fortunes; only a Vistani can read true"},
+    {name:"Tea, gaeth’ad", price:"5 sp / cup", qty:"1d4 × 5 cups", desc:"Thick and brackish, can be mildly psychoactive"},
+    {name:"Tea, jethur", price:"3 gp / cup", qty:"1d4 × 2 cups", desc:"Purple and savory, cures drunkeness for 2 hrs."},
+    {name:"Tea, milian tal", price:"1 sp / cup", qty:"1d4 × 10 cups", desc:"A purple licorice-tasting tea, served chilled"},
+    {name:"Tea, nararoot", price:"2 gp / cup", qty:"1d4 × 2 cups", desc:"Licorice taste; prevents becoming pregnant for 2 weeks"},
+    {name:"Tea, wild ginger", price:"5 sp / cup", qty:"1d4 × 5 cups", desc:"Spicy and sweet; settles the stomach"},
+    {name:"Tea set", price:"50 gp", qty:"1d4", desc:"Perfect for traditional tea ceremonies"},
+    {name:"Wand", price:"10 gp", qty:"1d4 × 3", desc:"Arcane focus; made of a single winding branch"},
+    {name:"Wildroot", price:"25 gp", qty:"1d4 × 2", desc:"Cures the poisoned condition"}
+  ],
+  "Good": [
+    {name:"Bell branch", price:"5,000 gp", qty:"Only 1, ever", desc:"Druid/warlock only; detects the presence of creatures"},
+    {name:"Book, exotic fauna", price:"150 gp", qty:"1d4 – 1", desc:"Has pictures and descriptions of many strange animals"},
+    {name:"Book, exotic flora", price:"150 gp", qty:"1d4 – 1", desc:"Details many rare and mysterious herbs and plants"},
+    {name:"Broom of flying", price:"500 gp", qty:"Only 1, ever", desc:"Fly speed of 50 ft., or 30 ft. if carrying over 200 lbs."},
+    {name:"Cauldron of plenty", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Drow poison", price:"200 gp / dose", qty:"1d4 doses", desc:"Injury; can render target unconscious"},
+    {name:"Elixir of health", price:"2,500 gp", qty:"1d4", desc:"Cures disease, blindness, deafness, paralyzed, poison"},
+    {name:"Figurine of wondrous power, silver raven", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Herbs, rare", price:"50 gp / lb.", qty:"1d4 × 2 lbs.", desc:"Ex: devilroot, embertear; for rare potions"},
+    {name:"Malice", price:"250 gp / dose", qty:"1d4 – 1 doses", desc:"Inhailed; can blind affected creatures"},
+    {name:"Nature’s mantle", price:"500 gp", qty:"Only 1, ever", desc:"Druid/ranger only; can hide as a bonus action easily"},
+    {name:"Potion of greater healing", price:"250 gp", qty:"1d4 × 2", desc:"Replenishes 4d4 + 4 hit points"},
+    {name:"Spell: Greater restoration", price:"450 gp", qty:"3 spells / day", desc:"Reduces exhaustion, removes charmed, petrified, a curse, or ability/hit point maximum reduction"},
+    {name:"Spell: Reincarnate", price:"2,250 gp", qty:"3 spells / day", desc:"Returns a creature to life as a random character race"},
+    {name:"Tea, Beorunna’s cure-all", price:"10 gp / cup", qty:"1d4 cups", desc:"First time you regain hp in 1 hr.: gain extra 2d4 hp"},
+    {name:"Tea, cassil", price:"10 gp / cup", qty:"1d4 cups", desc:"Prevents making another creature pregnant for 2 weeks"},
+    {name:"Tea, feverbalm", price:"7 gp / cup", qty:"1d4 cups", desc:"Numbing taste; suppresses madness effects for 1 hr."},
+    {name:"Tea, mallow", price:"7 gp / cup", qty:"1d4 × 2 cups", desc:"Semi-sweet; a sleep aid, renders dream ineffective"},
+    {name:"Tea, portentous", price:"20 gp / cup", qty:"1d4 × 2 cups", desc:"The leaves in the cup’s bottom hint at the future"}
+  ],
+  "Excellent": [
+    {name:"Cauldron of rebirth", price:"50,000 gp", qty:"Only 1, ever", desc:"Druid/warlock only; scrys, raises dead, makes potions"},
+    {name:"Crystal ball", price:"50,000 gp", qty:"Only 1, ever", desc:"Casts the scrying spell"},
+    {name:"Herbs, very rare", price:"500 gp / lb.", qty:"1d4 lbs.", desc:"Ex: starspine, voidweave; for very rare potions"},
+    {name:"Potion of longevity", price:"25,000 gp", qty:"1d4 – 1", desc:"Reduces your age by 1d6 + 6 (usually)"},
+    {name:"Potion of supreme healing", price:"25,000 gp", qty:"1d4", desc:"Regains 10d4 + 20 hit points"},
+    {name:"Spell: Awaken", price:"2,250 gp", qty:"3 spells / day", desc:"Makes a beast or plant intelligent and able to speak"}
+  ]
+},
+"Legendary: Astral traveler": {
+  "Medium": [
+    {name:"Astral diamond", price:"10,000 gp", qty:"1d4 × 10", desc:"Used as a form of currency in many planar locales"},
+    {name:"Bag of holding", price:"500 gp", qty:"1d4 × 2", desc:"Holds 64 cu. ft., or 500 lbs; always weighs 15 lbs."},
+    {name:"Bead of force", price:"2,500 gp", qty:"1d4 + 4", desc:"Deals force damage in a radius, and traps creatures"},
+    {name:"Book, planar travelogue", price:"1,000 gp", qty:"1d4", desc:"Intimate details of a planar locale, by Beatrix Trifling"},
+    {name:"Chest of preserving", price:"100 gp", qty:"1d4", desc:"Items inside don’t age or decay; holds 3.75 cubic ft."},
+    {name:"Elemental compass", price:"500 gp", qty:"Only 1, ever", desc:"Points towards the nearest portal to an Elemental Plane"},
+    {name:"Everbountiful soup kettle", price:"500 gp", qty:"1d4", desc:"Action: turns 2 gal. of water into enough soup to feed 6 people; recharges every day at dawn"},
+    {name:"Flame of translation", price:"100 gp", qty:"Only 1, ever", desc:"A tiny fire elemental bound in a lantern; sheds bright light out to 15 ft., dim light 15 ft. beyond that; will translate any Primordial (or dialects) it hears into Common, but will complain if asked to translate anything other than Ignan"},
+    {name:"Glasses of astral names", price:"100 gp", qty:"1d4", desc:"When looking at the night sky, charts constellations and tells you the name of any star you focus on"},
+    {name:"Helm of underwater action", price:"500 gp", qty:"1d4 – 1", desc:"Allows you to breathe underwater, grants darkvision to 60 ft., and grants a swimming speed of 30 ft."},
+    {name:"Hourglass", price:"25 gp", qty:"1d4 × 2", desc:""},
+    {name:"Map, automatic", price:"500 gp", qty:"1d4", desc:"Magically constantly maps everything in a 5 mile radius"},
+    {name:"Map, planar", price:"1,000 gp", qty:"1d4", desc:"Accurately depicts a significant planar location"},
+    {name:"Mirror, steel", price:"5 gp", qty:"1d4", desc:""},
+    {name:"Immovable rod", price:"500 gp", qty:"1d4", desc:"When activated, stays in place and holds 8,000 lbs."},
+    {name:"Obsidian mortar and pestle", price:"100 gp", qty:"1d4", desc:"Can grind any non-magical item to powder in 1d4 rounds"},
+    {name:"Oil of etherealness", price:"2,500 gp", qty:"1d4", desc:"Confers the effects of the etherealness spell"},
+    {name:"Potion of gaseous form", price:"2,500 gp", qty:"1d4", desc:"Confers the effects of the gaseous form spell"},
+    {name:"Potion of water breathing", price:"250 gp", qty:"1d4 × 2", desc:"Allows you to breathe water for up to 1 hr."},
+    {name:"Psi crystal", price:"500 gp", qty:"Only 1, ever", desc:"Grants telepathy; radiates light based on INT"},
+    {name:"Scroll of protection, any", price:"2,500 gp", qty:"1d4 × 3", desc:"Can be used by anyone; protects against a creature type"},
+    {name:"Sending stones", price:"500 gp / 2", qty:"1d4 sets of 2", desc:"Can cast sending between two creatures with a stone"},
+    {name:"Spell: Teleport", price:"490 gp", qty:"3 spells / day", desc:"Teleports up to 8 creatures to a place on the same plane"},
+    {name:"Spell: Teleportation circle", price:"350 gp", qty:"3 spells / day", desc:"Paying 20 × cost creates a permanent teleportation circle"},
+    {name:"Starsphere", price:"100 gp", qty:"1d4", desc:"A tiny crystal inside a quartz orb; shines brightly when an aberrant creature is within 5,000 ft."},
+    {name:"Survival mantle", price:"500 gp", qty:"1d4", desc:"Half-plate armor; wearer can breathe normally anywhere"},
+    {name:"Tuning fork", price:"250 gp", qty:"1d4 × 5", desc:"Each tuned to a specific plane; used by the plane shift spell"},
+    {name:"Vial of stardust", price:"250 gp", qty:"1d4 vials", desc:"Use: can cast dream spell once w/o components (DC 15)"},
+    {name:"Wingwear", price:"500 gp", qty:"1d4", desc:"Instead recharges with a long rest"}
+  ],
+  "Good": [
+    {name:"Amulet of the planes", price:"50,000 gp", qty:"Only 1, ever", desc:"Can use to travel between planes somewhat reliably"},
+    {name:"Astral shard", price:"5,000 gp", qty:"Only 1, ever", desc:"Sorcerer only; teleport when you use metamagic"},
+    {name:"Astromancy archive", price:"5,000 gp", qty:"Only 1, ever", desc:"Wizard only; holds spells and affects attack bonuses"},
+    {name:"Atlas of endless horizons", price:"5,000 gp", qty:"Only 1, ever", desc:"Wizard only; holds spells and can teleport if attacked"},
+    {name:"Celestial orrery", price:"1,000 gp", qty:"Only 1, ever", desc:"An intricate, accurate clockwork model of the multiverse; small enough to be held in two hands"},
+    {name:"Cube of force", price:"5,000 gp", qty:"Only 1, ever", desc:"Creates a customizable force barrier"},
+    {name:"Disintegration chamber", price:"5,000 gp", qty:"Only 1, ever", desc:"Anything fully in this 1 ft. cube is affected by disintegrate"},
+    {name:"Elemental essence shard, random", price:"5,000 gp", qty:"Only 1, ever", desc:"Sorcerer only; adds an effect to metamagic based on its elemental type"},
+    {name:"Far Realm shard", price:"5,000 gp", qty:"Only 1, ever", desc:"Sorcerer only; metamagic summons a tentacle"},
+    {name:"Gem of seeing", price:"5,000 gp", qty:"Only 1, ever", desc:"Can grant truesight out to 120 ft. for 10 mins."},
+    {name:"Helm of teleportation", price:"5,000 gp", qty:"Only 1, ever", desc:"Can cast the teleport spell"},
+    {name:"Magnifying glass of spying", price:"500 gp", qty:"1d4", desc:"Can see through 5 ft. of walls; blocked by 1 in. of lead"},
+    {name:"Outer essence shard, random", price:"5,000 gp", qty:"Only 1, ever", desc:"Sorcerer only"},
+    {name:"Peregrine mask", price:"50,000 gp", qty:"Only 1, ever", desc:"Grants a flying speed of 60 ft., and adv. on initiative rolls"},
+    {name:"Planecaller’s codex", price:"5,000 gp", qty:"Only 1, ever", desc:"Wizard only; holds spells, empowers conjured creatures"},
+    {name:"Portable hole", price:"5,000 gp", qty:"1d4", desc:"Holds 280 cu. ft. or 7,000 lbs.; weights nearly nothing"},
+    {name:"Spell: Dream of the blue veil", price:"490 gp", qty:"3 spells / day", desc:"Transitions to a different world on the Material Plane; you provide the item/creature in the M components"},
+    {name:"Spell: Planar ally", price:"360 gp", qty:"3 spells / day", desc:"Summons a planar creature that behaves as it wants"},
+    {name:"Spell: Plane shift", price:"515 gp", qty:"3 spells / day", desc:"Teleports up to 8 creatures to a different plane"}
+  ],
+  "Excellent": [
+    {name:"Black crystal tablet", price:"500,000 gp", qty:"Only 1, ever", desc:"Can cast eyebite or open a gate to the Far Realms"},
+    {name:"Cubic gate", price:"500,000 gp", qty:"Only 1, ever", desc:"Can cast gate or plane shift to specific locations"},
+    {name:"Iron flask", price:"500,000 gp", qty:"Only 1, ever", desc:"A powerful planar creature is inside, and wants out"},
+    {name:"Key of demesne", price:"50,000 gp", qty:"Only 1, ever", desc:"Action: casts Mordenkainen’s magnificent mansion 1 / day"},
+    {name:"Scroll of the comet", price:"250,000 gp", qty:"Only 1, ever", desc:"Summons an immense crashing comet exactly once"},
+    {name:"Spell: Astral projection", price:"3,010 gp*", qty:"3 spells / day", desc:"Add 2,200 gp to the cost for each creature this spell affects after the first, besides the caster"},
+    {name:"Spell: Gate", price:"1,310 gp", qty:"3 spells / day", desc:"Opens a stable portal to another plane"},
+    {name:"Voyager staff", price:"50,000 gp", qty:"Only 1, ever", desc:"Casts banishment, blink, passwall, misty step, or teleport"},
+    {name:"Well of many worlds", price:"500,000 gp", qty:"Only 1, ever", desc:"An unfoldable cloth that opens a portal to many places"}
+  ]
+},
+"Legendary: Enchantments": {
+  "Medium": [
+    {name:"Random minor enchantment", price:"100 gp", qty:"3 enchants / day", desc:"Rolled on the Minor Enchantments table"},
+    {name:"Random major enchantment", price:"500 gp", qty:"3 enchants / day", desc:"Rolled on the Major Enchantments table"}
+  ],
+  "Good": [
+    {name:"Chosen minor enchantment", price:"200 gp", qty:"3 enchants / day", desc:"Chosen from the Minor Enchantments table"},
+    {name:"Chosen major enchantment", price:"1,000 gp", qty:"3 enchants / day", desc:"Chosen from the Major Enchantments table"},
+    {name:"Random legendary enchantment", price:"5,000 gp", qty:"3 enchants / day", desc:"Rolled on the Legendary Enchantments table"}
+  ],
+  "Excellent": [
+    {name:"Chosen legendary enchantment", price:"10,000 gp", qty:"3 enchants / day", desc:"Chosen from the Legendary Enchantments table"}
+  ]
+},
+"Legendary: Fey bargains": {
+  "Medium": [
+    {name:"Bag of tricks, rust", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Boots of elvenkind", price:"", qty:"Only 1, set ever", desc:""},
+    {name:"Boots of false tracks", price:"", qty:"Only 1 set, ever", desc:"Makes your tracks appear as another humanoid’s"},
+    {name:"Bracers of archery", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Charlatan’s die", price:"", qty:"Only 1, ever", desc:"You control what number it rolls"},
+    {name:"Cloak of elvenkind", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Cloak of many fashions", price:"", qty:"Only 1, ever", desc:"Can be made to appear how you wish"},
+    {name:"Dark shard amulet", price:"", qty:"Only 1, ever", desc:"Warlock only; attempt to cast extra cantrips"},
+    {name:"Feywild shard", price:"", qty:"Only 1, ever", desc:"Sorcerer only; metamagic makes wild magic occur"},
+    {name:"Glamerweave, uncommon", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Gloves of thievery", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Moon-touched sword, any", price:"", qty:"Only 1, ever", desc:"Sheds bright light for 15 feet, dim light 15 feet beyond that"},
+    {name:"Mystery key", price:"", qty:"Only 1, ever", desc:"Has a 5% chance to unlock any door, then disappear"},
+    {name:"Perfume of bewitching", price:"", qty:"Only 1, ever", desc:"Adv. on Cha. checks vs. humanoids ≤ CR 1 for 1 hr."},
+    {name:"Pot of awakening", price:"", qty:"Only 1, ever", desc:"Grows a friendly awakened shrub over 30 days"},
+    {name:"Quiver of Ehlonna", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Staff of flowers", price:"", qty:"Only 1, ever", desc:"Can cause a specific nonmagical flower to grow"},
+    {name:"Talking doll", price:"", qty:"Only 1, ever", desc:"Can be instructed to say up to 6 short phrases"}
+  ],
+  "Good": [
+    {name:"Bag of beans", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Cloak of displacement", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Elven chain", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Glamoured studded leather", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Horn of blasting", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Ring of animal influence", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Robe of summer", price:"", qty:"Only 1, ever", desc:"Grants resist. to cold damage and extreme weather"},
+    {name:"Rod of the pact keeper +2", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Sentinel shield", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Staff of charming", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Warlock pact, Archfey patron", price:"", qty:"Unlimited", desc:"Next level taken will be in warlock, with the Archfey Otherworldly Patron; patron is the merchant"}
+  ],
+  "Excellent": [
+    {name:"Dancing sword, any", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Instrument of the bards, Anstruth harp", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Mirror of life trapping", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Oathbow", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Ring of invisibility", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Scimitar of speed", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Staff of the woodlands", price:"", qty:"Only 1, ever", desc:""},
+    {name:"Vorpal sword, any", price:"", qty:"Only 1, ever", desc:""}
+  ]
+},
+"Legendary: Magic items": {
+  "Medium": [
+    {name:"Bag of tricks, grey", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Bottled breath", price:"250 gp", qty:"1d4", desc:"Either hold breath for 1 hr. or cast gust of wind"},
+    {name:"Cloak of billowing", price:"100 gp", qty:"Only 1, ever", desc:"Bonus action: cloak billows dramatically"},
+    {name:"Component pouch", price:"25 gp", qty:"1d4 × 2", desc:"Has tiny inner pockets for various components"},
+    {name:"Crystal", price:"10 gp", qty:"1d4 × 2", desc:"Arcane focus; a shining bit of quartz or similar"},
+    {name:"Dark shard amulet", price:"100 gp", qty:"Only 1, ever", desc:"Warlock only; attempt to cast extra cantrips"},
+    {name:"Dust of dryness", price:"250 gp", qty:"1d4", desc:""},
+    {name:"Ear horn of hearing", price:"100 gp", qty:"1d4", desc:"Held to ear: suppresses the deafened condition"},
+    {name:"Ersatz eye", price:"100 gp", qty:"1d4", desc:"Replaces a missing eye"},
+    {name:"Everbright lantern", price:"100 gp", qty:"1d4", desc:"Instead holds a continual flame, outside of Eberron"},
+    {name:"Figurine of wondrous power, silver raven", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Hat of wizardry", price:"100 gp", qty:"Only 1, ever", desc:"Wizard only; attempt to cast extra cantrips"},
+    {name:"Immovable rod", price:"500 gp", qty:"1d4", desc:"When activated, stays in place and holds 8,000 lbs."},
+    {name:"Orb", price:"25 gp", qty:"1d4 × 2", desc:"Arcane focus; a sphere used to direct the mind"},
+    {name:"Orb of time", price:"100 gp", qty:"Only 1, ever", desc:"Action: If on Material Plane, know the time of day"},
+    {name:"Pipe of remembrance", price:"100 gp", qty:"Only 1, ever", desc:"Smoked for 10 min.: Illustrates your deeds in smoke"},
+    {name:"Pixie dust", price:"250 gp", qty:"1d4 pinches", desc:"Used as components, or used for random effects"},
+    {name:"Ring of mind shielding", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Robe of useful items", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Rod", price:"10 gp", qty:"1d4 × 3", desc:"Arcane focus; an arm-long piece of magical wood/metal"},
+    {name:"Rope of climbing", price:"500 gp", qty:"Only 1, ever", desc:"Can animate to help you climb automatically"},
+    {name:"Ruby of the war mage", price:"100 gp", qty:"1d4", desc:"Attaches to a weapon; used as a focus for spells"},
+    {name:"Sending stones", price:"500 gp / 2", qty:"1d4 sets of 2", desc:"Can cast sending between two creatures with a stone"},
+    {name:"Staff of adornment", price:"100 gp", qty:"Only 1, ever", desc:"Can be decorated with up to 3 mundane floating objects"},
+    {name:"Wand", price:"10 gp", qty:"1d4 × 3", desc:"Arcane focus; useful for channelling spells"},
+    {name:"Wand of magic missiles", price:"500 gp", qty:"Only 1, ever", desc:"Casts the magic missile spell"},
+    {name:"Wand of scowls", price:"100 gp", qty:"Only 1, ever", desc:"Can force a creature to scowl for 1 min."},
+    {name:"Wand of smiles", price:"100 gp", qty:"Only 1, ever", desc:"Can force a creature to smile for 1 min."},
+    {name:"Wind fan", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Additional items", price:"100 - 500 gp", qty:"1 - 5", desc:"Common or uncommon quality magic items"}
+  ],
+  "Good": [
+    {name:"Abracadabrus", price:"50,000 gp", qty:"Only 1, ever", desc:"Creates anything mundane, under 1 gp in worth"},
+    {name:"Bag of beans", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Broom of flying", price:"500 gp", qty:"Only 1, ever", desc:"Fly speed of 50 ft., or 30 ft. if carrying over 200 lbs."},
+    {name:"Cauldron of plenty", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Crystal ball", price:"50,000 gp", qty:"Only 1, ever", desc:"Casts the scrying spell"},
+    {name:"Deck of illusions", price:"500 gp", qty:"Only 1, ever", desc:"Conjures a random illusion at a point you choose"},
+    {name:"Duplicitous manuscript", price:"5,000 gp", qty:"Only 1, ever", desc:"Wizard only; holds spells, appears as a romance novel"},
+    {name:"Figurine of wondrous power, ivory goats", price:"5,000 gp", qty:"Only 1 set, ever", desc:""},
+    {name:"Figurine of wondrous power, onyx dog", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Portable hole", price:"5,000 gp", qty:"1d4", desc:"Holds 280 cu. ft. or 7,000 lbs.; weights nearly nothing"},
+    {name:"Ring of feather falling", price:"5,000 gp", qty:"Only 1, ever", desc:"You descend at 60 ft. / round, and take no fall damage"},
+    {name:"Ring of free action", price:"5,000 gp", qty:"Only 1, ever", desc:"Ignore diff. terrain, paralyzed, restrained, and speed red."},
+    {name:"Ring of resistance, any", price:"5,000 gp", qty:"1d4", desc:"Grants resistance to a specific type of damage"},
+    {name:"Ring of the ram", price:"5,000 gp", qty:"Only 1, ever", desc:"Makes a special melee spell attack, knocking foes back"},
+    {name:"Staff of charming", price:"5,000 gp", qty:"Only 1, ever", desc:"Casts charm person, command, or comprehend languages"},
+    {name:"Wand of winter", price:"5,000 gp", qty:"Only 1, ever", desc:"Casts ray of frost, sleet storm, or ice storm"},
+    {name:"Wand of wonder", price:"5,000 gp", qty:"Only 1, ever", desc:"Casts powerful, but entirely random, spells"},
+    {name:"Additional items", price:"5,000 gp", qty:"1 - 5", desc:"Rare quality magic items"}
+  ],
+  "Excellent": [
+    {name:"Animated shield", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Cloak of arachnida", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Cloak of the bat", price:"5,000 gp", qty:"Only 1, ever", desc:"Adv. on stealth checks; can turn into a bat"},
+    {name:"Dancing sword, any", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Illusionist’s bracers", price:"50,000 gp", qty:"Only 1, ever", desc:"Bonus action: Cast a previously-cast cantrip a 2nd time"},
+    {name:"Ioun stone, absorption", price:"50,000 gp", qty:"Only 1, ever", desc:"Can absorb a limited number of spells"},
+    {name:"Mantle of spell resistance", price:"5,000 gp", qty:"Only 1, ever", desc:"Grants adv. on saving throws vs. spells"},
+    {name:"Nolzur’s marvelous pigments", price:"25,000 gp", qty:"Only 1 set, ever", desc:"Creates paintings that become reality"},
+    {name:"Ring of shooting stars", price:"50,000 gp", qty:"Only 1, ever", desc:"Casts several spells; can conjure stars and ball lightning"},
+    {name:"Staff of fire", price:"50,000 gp", qty:"Only 1, ever", desc:"Casts burning hands, fireball, or wall of fire"},
+    {name:"Staff of frost", price:"50,000 gp", qty:"Only 1, ever", desc:"Casts cone of cold, fog cloud, ice storm, or wall of ice"},
+    {name:"Wand of polymorph", price:"50,000 gp", qty:"Only 1, ever", desc:"Casts the polymorph spell"},
+    {name:"Wand of the war mage +3", price:"50,000 gp", qty:"Only 1, ever", desc:"+3 bonus to spell attacks, spell attacks ignore half cover"},
+    {name:"Additional items", price:"50,000 gp", qty:"1 - 5", desc:"Very rare quality magic items"}
+  ]
+},
+"Legendary: Magical creatures": {
+  "Medium": [
+    {name:"Bit and bridle", price:"2 gp", qty:"1d4 × 2", desc:""},
+    {name:"Dire wolf", price:"800 gp", qty:"1d4", desc:"Untamed"},
+    {name:"Elk", price:"100 gp", qty:"1d4", desc:"May instead be a reindeer"},
+    {name:"Feed, animal", price:"5 cp / day", qty:"1d4 × 30 days", desc:""},
+    {name:"Flying snake", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Giant fire beetle", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Giant goat", price:"300 gp", qty:"1d4", desc:""},
+    {name:"Giant lizard", price:"350 gp", qty:"1d4", desc:""},
+    {name:"Giant wolf spider", price:"400 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Monkey, flying", price:"100 gp", qty:"1d4", desc:""},
+    {name:"Rothé", price:"50 gp", qty:"1d4", desc:"A smaller Underdark cow, with limited magical ability"},
+    {name:"Saddle, exotic", price:"60 gp", qty:"1d4 + 1", desc:""},
+    {name:"Space hamster", price:"50 gp", qty:"1d4", desc:"Looks normal, but is from space; uses a rat’s statistics"},
+    {name:"Stench kow", price:"75 gp", qty:"1d4 – 1", desc:"A misshapen cow native to the lower planes; smells terrible"},
+    {name:"Tressym", price:"100 gp", qty:"1d4", desc:"A winged cat capable of flight"}
+  ],
+  "Good": [
+    {name:"Aurochs", price:"750 gp", qty:"1d4 – 1", desc:""},
+    {name:"Blink dog", price:"500 gp", qty:"1d4 – 1", desc:""},
+    {name:"Cockatrice", price:"800 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Dragon egg", price:"1,000 gp", qty:"1d4 – 1", desc:"Hatches with proper care after 300 days; random type"},
+    {name:"Gelatinous cube", price:"800 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Giant bat", price:"800 gp", qty:"1d4 – 1", desc:""},
+    {name:"Giant eagle", price:"800 gp", qty:"1d4 – 1", desc:""},
+    {name:"Giant elk", price:"700 gp", qty:"1d4 – 1", desc:""},
+    {name:"Giant sea horse", price:"700 gp", qty:"1d4 – 1", desc:"Only if near a body of water"},
+    {name:"Giant walrus", price:"800 gp", qty:"1d4 – 1", desc:"Only if near a body of water"},
+    {name:"Griffon", price:"900 gp", qty:"1d4 – 1", desc:""},
+    {name:"Hippocamp", price:"800 gp", qty:"1d4 – 1", desc:"Only if near a body of water"},
+    {name:"Ice toad", price:"700 gp", qty:"1d4 – 1", desc:"Untamed; somewhat intelligent, speak their own language"},
+    {name:"Owlbear", price:"1,000 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Pegasus", price:"1,250 gp", qty:"1d4 – 1", desc:""},
+    {name:"Pot of awakening", price:"100 gp", qty:"Only 1, ever", desc:"Grows a friendly awakened shrub over 30 days"},
+    {name:"Pseudodragon", price:"250 gp", qty:"1d4 – 1", desc:""},
+    {name:"Worg", price:"800 gp", qty:"1d4 – 1", desc:"Untamed"}
+  ],
+  "Excellent": [
+    {name:"Basilisk", price:"1,500 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Bulette", price:"2,500 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Carrion crawler", price:"1,250 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Death dog", price:"1,000 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Displacer beast", price:"2,500 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Flail snail", price:"1,500 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Gorgon", price:"2,500 gp", qty:"1d4 – 2", desc:"Untamed"},
+    {name:"Manticore", price:"2,500 gp", qty:"1d4 – 2", desc:"Untamed"},
+    {name:"Mimic", price:"1,000 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Otyugh", price:"1,500 gp", qty:"1d4 – 2", desc:"Untamed"},
+    {name:"Rust monster", price:"1,000 gp", qty:"1d4 – 1", desc:"Untamed"},
+    {name:"Scroll of the tarrasque", price:"250,000 gp", qty:"Only 1, ever", desc:"Summons a tarrasque exactly once"},
+    {name:"Shadow mastiff", price:"1,750 gp", qty:"1d4 – 2", desc:"Untamed"},
+    {name:"Stag, golden", price:"800 gp", qty:"1d4 – 2", desc:"Uses an elk’s statistics; attacks are magical"},
+    {name:"Unicorn", price:"3,000 gp", qty:"1d4 – 2", desc:"Untamed"}
+  ]
+},
+"Legendary: Necromancy": {
+  "Medium": [
+    {name:"Acid", price:"25 gp / vial", qty:"1d4 × 5 vials", desc:""},
+    {name:"Alchemist’s supplies", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Amulet", price:"5 gp", qty:"1d4", desc:"Holy symbol; has a profane symbol of a god of death"},
+    {name:"Bones, full set", price:"5 gp / set", qty:"1d4 × 4 sets", desc:"Good for necromancy, and maybe even soup"},
+    {name:"Dust of dryness", price:"250 gp", qty:"1d4", desc:""},
+    {name:"Candle", price:"1 cp", qty:"1d4 × 10", desc:"Comes in black, grey, white, or red"},
+    {name:"Chain", price:"5 gp / 10 ft.", qty:"1d4 × 20 ft.", desc:""},
+    {name:"Chalk", price:"1 cp / piece", qty:"1d4 × 5 pieces", desc:"Comes in black, grey, white, or red"},
+    {name:"Component pouch", price:"25 gp", qty:"1d4 × 2", desc:"Has tiny inner pockets for various components"},
+    {name:"Corpse, dead", price:"4 gp", qty:"1d4 × 4", desc:"An intact corpse perfect for necromancy"},
+    {name:"Dagger, ritual", price:"2 gp", qty:"1d4 × 2", desc:"Has an oddly curved design"},
+    {name:"Dark shard amulet", price:"100 gp", qty:"Only 1, ever", desc:"Warlock only; attempt to cast extra cantrips"},
+    {name:"Flesh", price:"1 sp / lb.", qty:"1d4 × 20 lbs.", desc:"Best not to ask..."},
+    {name:"Hourglass", price:"25 gp", qty:"1d4 × 2", desc:""},
+    {name:"Incense", price:"1 sp / block", qty:"1d4 × 20 blocks", desc:"Thick, musky, and pungent"},
+    {name:"Incense, insect repellent", price:"1 sp / block", qty:"1d4 × 10 blocks", desc:"Smells smoky and foul, wards off mundane insects"},
+    {name:"Leather, cured", price:"5 gp / sq. yd.", qty:"1d4 × 2 sq. yds.", desc:"Perhaps best not to consider the source"},
+    {name:"Leatherworker’s tools", price:"25 gp", qty:"1d4", desc:""},
+    {name:"Living gloves", price:"500 gp", qty:"Only 1 set, ever", desc:"Made of living skin; grants various proficiencies"},
+    {name:"Lock", price:"10 gp", qty:"1d4", desc:"Key included"},
+    {name:"Manacles", price:"2 gp", qty:"1d4 – 1", desc:"Key included"},
+    {name:"Night caller", price:"500 gp", qty:"Only 1, ever", desc:"Raises and maintains control of one zombie/skeleton"},
+    {name:"Poison, basic", price:"100 gp / vial", qty:"1d4 vials", desc:"Injury; can inflict 1d4 poison damage"},
+    {name:"Poisoner’s kit", price:"50 gp", qty:"1d4", desc:""},
+    {name:"Salt", price:"5 cp / lb.", qty:"1d4 × 10 lbs.", desc:""},
+    {name:"Shovel", price:"2 gp", qty:"1d4 × 2", desc:""},
+    {name:"Spell: Animate dead", price:"90 gp", qty:"3 spells / day", desc:"3rd-level; the undead follows your commands for 1 day"},
+    {name:"Spell: Gentle repose", price:"40 gp", qty:"3 spells / day", desc:"Stops decay in a corpse, prevents undeath"},
+    {name:"Spell: Raise dead", price:"1,250 gp", qty:"3 spells / day", desc:"Returns a dead corpse to life"},
+    {name:"Spell: Speak with dead", price:"90 gp", qty:"3 spells / day", desc:"Allows you to speak to one non-undead corpse"},
+    {name:"Spellbook", price:"50 gp", qty:"1d4", desc:"Empty; suitable for holding spells"},
+    {name:"Statuette, carved bone", price:"25 gp", qty:"1d4", desc:"Depicts a stylized lich"},
+    {name:"Wand", price:"10 gp", qty:"1d4 × 3", desc:"Arcane focus; made of carved, runed bone"},
+    {name:"Weaver’s tools", price:"1 gp", qty:"1d4", desc:""}
+  ],
+  "Good": [
+    {name:"Amulet of health", price:"5,000 gp", qty:"Only 1, ever", desc:"Raises your Con. score to 19"},
+    {name:"Amulet of protection from turning", price:"5,000 gp", qty:"1d4", desc:"Grants adv. on saves against effects that would turn undead, and allows you to succeed 3 such saves / day"},
+    {name:"Bottomless bag of bones", price:"500 gp", qty:"Only 1, ever", desc:"Produces up to 10 corpses or piles of bones each day, only for use as raised minions in necromancy spells"},
+    {name:"Cloak of the bat", price:"5,000 gp", qty:"Only 1, ever", desc:"Adv. on stealth checks; can turn into a bat"},
+    {name:"Ghost lantern", price:"5,000 gp", qty:"Only 1, ever", desc:"Sheds light, casts mage hand, and stabilizes you"},
+    {name:"Libram of souls and flesh", price:"5,000 gp", qty:"Only 1, ever", desc:"Wizard only; holds spells, you can appear undead"},
+    {name:"Mask, plague doctor", price:"50 gp", qty:"1d4", desc:"Durable leather, with a long beak"},
+    {name:"Mask, skull", price:"45 gp", qty:"1d4", desc:"Made of actual bone"},
+    {name:"Pipes of haunting", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Shadowfell shard", price:"5,000 gp", qty:"Only 1, ever", desc:"Sorcerer only; metamagic also curses creatures"},
+    {name:"Spell: Create undead", price:"1,260 gp", qty:"3 spells / day", desc:"6th-level; creatures follow your commands for 1 day"},
+    {name:"Spell: Hallow", price:"2,250 gp", qty:"3 spells / day", desc:"Desecrates an area, with additional effects"},
+    {name:"Spell: Resurrection", price:"2,490 gp", qty:"3 spells / day", desc:"A more potent way of restoring the dead to life"},
+    {name:"Sword of life stealing, any", price:"5,000 gp*", qty:"Only 1, ever", desc:"Add base cost of the nonmagical weapon to item’s price"},
+    {name:"Wand of fear", price:"5,000 gp", qty:"Only 1, ever", desc:"Casts the command spell; can frighten creatures"}
+  ],
+  "Excellent": [
+    {name:"Kyrzin’s ooze", price:"50,000 gp", qty:"Only 1, ever", desc:"Grants acid breath, amorphous form, etc."},
+    {name:"Living armor, any", price:"50,000 gp*", qty:"Only 1, ever", desc:"Made of living skin or chitin; add base cost of the nonmagical armor to item’s price"},
+    {name:"Manual of golems, flesh", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Potion of longevity", price:"25,000 gp", qty:"1d4", desc:"Reduces your age by 1d6 + 6 (usually)"},
+    {name:"Ring of regeneration", price:"50,000 gp", qty:"Only 1, ever", desc:"Regains 1d6 hit points every 10 mins.; regrows limbs"},
+    {name:"Spell: Clone", price:"2,840 gp", qty:"3 spells / day", desc:"Safeguards against death after 120 days"}
+  ]
+},
+"Legendary: Needful things": {
+  "Medium": [
+    {name:"Bag of holding", price:"500 gp", qty:"Only 1d4, ever", desc:"Holds 64 cu. ft., or 500 lbs; always weighs 15 lbs."},
+    {name:"Bag of tricks, tan", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Charlatan’s die", price:"100 gp", qty:"1d4", desc:"You control what number it rolls"},
+    {name:"Clothes, cloth-of-gold vestments", price:"25 gp", qty:"1d4", desc:"Decorated with stylized infernal runes"},
+    {name:"Daern’s instant fortress", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Dragon’s blood (drug)", price:"1 gp / dose", qty:"1d4 × 2 doses", desc:"Highly addictive, enhances magical ability"},
+    {name:"Dread helm", price:"100 gp", qty:"Only 1, ever", desc:"When you wear it, your eyes glow red"},
+    {name:"Dreamlily (drug)", price:"1 gp / dose", qty:"1d4 × 2 doses", desc:"Highly addictive, significantly reduces pain"},
+    {name:"Eversmoking bottle", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Hellfire weapon, any", price:"500 gp*", qty:"Only 1, ever", desc:"Add base cost of the nonmagical weapon to item’s price"},
+    {name:"Infernal puzzle box", price:"500 gp", qty:"1d4", desc:"Your DM decides what is within the puzzle box"},
+    {name:"Iron bands of Bilarro", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Mace of terror", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Rod of rulership", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Soul coin", price:"500 gp", qty:"1d4 × 10", desc:"Contains one humanoid soul, used as currency"},
+    {name:"Statuette, carved bone", price:"25 gp", qty:"1d4", desc:"Portrays an archdevil"},
+    {name:"Statuette, obsidian and gold", price:"750 gp", qty:"1d4", desc:"Portrays a duke of the Nine Hells"},
+    {name:"Sword of life stealing, any", price:"5,000 gp*", qty:"Only 1, ever", desc:"Add base cost of the nonmagical weapon to item’s price"},
+    {name:"Thermal cube", price:"100 gp", qty:"1d4", desc:"Radiates dry heat in a 15 foot radius"},
+    {name:"Wand of fireballs", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Any desired item", price:"*varies", qty:"1d4 items", desc:"Item quality no greater than uncommon"}
+  ],
+  "Good": [
+    {name:"Battle standard of infernal power", price:"50,000 gp", qty:"Only 1, ever", desc:"Makes the weapon attacks of all friendly creatures within 300 feet magical"},
+    {name:"Berserker axe, any", price:"5,000 gp*", qty:"Only 1, ever", desc:"Add base cost of the nonmagical weapon to item’s price"},
+    {name:"Devil’s ride", price:"30,000 gp", qty:"1d4 – 1", desc:"War machine, similar to a motorcycle"},
+    {name:"Dimensional shackles", price:"5,000 gp", qty:"Only 1 set, ever", desc:"Prevents extradimensional movement and teleportation"},
+    {name:"Demon armor", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Figurine of wondrous power, obsidian steed", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Gauntlets of flaming fury", price:"5,000 gp", qty:"Only 1 set, ever", desc:"Causes weapons to deal an extra 1d6 fire damage"},
+    {name:"Hell hound cloak", price:"5,000 gp", qty:"Only 1, ever", desc:"Allows you to transform into a hell hound for 1 hour"},
+    {name:"Ioun stone, intellect", price:"50,000 gp", qty:"Only 1, ever", desc:"Increases your Intelligence score by 2"},
+    {name:"Rod of the pact keeper +2", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Staff of fire", price:"50,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Any desired item", price:"*varies", qty:"1d4 items", desc:"Item quality no greater than rare"},
+    {name:"Warlock pact", price:"5,000 gp", qty:"Unlimited", desc:"Next level taken will be in warlock, with the Fiend Otherworldly Patron; patron is the merchant"}
+  ],
+  "Excellent": [
+    {name:"Belt of giant strength, fire", price:"50,000 gp", qty:"Only 1, ever", desc:"Increases your Strength score to 25"},
+    {name:"Infernal tack", price:"500,000 gp", qty:"Only 1, ever", desc:"Comes with a bound nightmare"},
+    {name:"Instrument of the bards, ollamh harp", price:"500,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Iron flask", price:"500,000 gp", qty:"Only 1, ever", desc:"Your DM decides what is within the flask"},
+    {name:"Rakdos riteknife", price:"500,000 gp", qty:"Only 1, ever", desc:"Stores up to 5 souls, deals extra damage for each soul"},
+    {name:"Talisman of ultimate evil", price:"500,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Tormentor", price:"60,000 gp", qty:"1d4 – 2", desc:"War machine, similar to a dune buggy"},
+    {name:"Any desired item", price:"*varies", qty:"1d4 items", desc:"Item quality no greater than rare"}
+  ]
+},
+"Legendary: Time-lost": {
+  "Medium": [
+    {name:"Calculator", price:"60 gp", qty:"1d4 – 1", desc:"Tech (2); performs mathematical functions"},
+    {name:"Electric torch", price:"50 gp", qty:"1d4 – 1", desc:"Tech (1)"},
+    {name:"Entertainment pad", price:"150 gp", qty:"1d4 – 1", desc:"Tech (3)"},
+    {name:"Energy cell", price:"15 gp / each", qty:"1d4 × 1", desc:""},
+    {name:"Ersatz eye", price:"100 gp", qty:"1d4", desc:"Replaces a missing eye"},
+    {name:"Prosthetic limb", price:"100 gp", qty:"1d4", desc:"Replaces a missing arm"},
+    {name:"Pyroconverger", price:"500 gp", qty:"Only 1, ever", desc:""},
+    {name:"Talking doll", price:"100 gp", qty:"Only 1, ever", desc:"Can be instructed to say up to 6 short phrases"},
+    {name:"Tangler grenade", price:"250 gp", qty:"1d4", desc:"Throw up to 60 ft.: grenade explodes, creatures within 10 ft. make a DC 15 Dex save"},
+    {name:"Sending stones", price:"500 gp / 2", qty:"1d4 sets of 2", desc:"Can cast sending between two creatures with a stone"},
+    {name:"Wand of pyrotechnics", price:"100 gp", qty:"Only 1, ever", desc:"Labelled with the words “Roman Candle”"},
+    {name:"Wristwatch", price:"55 gp", qty:"Only 1, ever", desc:"Reliably tells the time of day, runs on motion"}
+  ],
+  "Good": [
+    {name:"Bead of force", price:"5,000 gp / 6", qty:"Only 6, ever", desc:""},
+    {name:"Boots of levitation", price:"5,000 gp", qty:"Only 1 set, ever", desc:""},
+    {name:"Cube of force", price:"5,000 gp", qty:"Only 1 set, ever", desc:""},
+    {name:"Goggles of night", price:"5,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Grenade, fragmentation", price:"300 gp / each", qty:"1d4 × 2", desc:"Tech (2)"},
+    {name:"Grenade, smoke", price:"250 gp / each", qty:"1d4 × 2", desc:"Tech (2)"},
+    {name:"Helm of teleportation", price:"5,000 gp", qty:"Only 1, ever", desc:"Casts the teleport spell"},
+    {name:"Jetpack", price:"3,500 gp", qty:"Only 1, ever", desc:"Tech (4)"},
+    {name:"Laser pistol", price:"3,000 gp", qty:"Only 1, ever", desc:"Tech (4)"},
+    {name:"Laser rifle", price:"4,500 gp", qty:"Only 1, ever", desc:"Tech (4)"},
+    {name:"Motorcycle", price:"40,000 gp", qty:"1d4 – 1", desc:"Same as devil’s ride, but runs on energy cells"},
+    {name:"Professor orb", price:"5,000 gp", qty:"Only 1, ever", desc:"Is sentient; has 18 Int, a scholar’s personality, and knows 4 esoteric subjects (+9 bonus to checks)"},
+    {name:"Ventilating lungs", price:"5,000 gp", qty:"Only 1, ever", desc:""}
+  ],
+  "Excellent": [
+    {name:"Antimatter rifle", price:"6,500 gp", qty:"Only 1, ever", desc:"Tech (4)"},
+    {name:"Apparatus of Kwalish", price:"500,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Arcane propulsion arm", price:"50,000 gp", qty:"Only 1, ever", desc:"Can be used to make a ranged rocket punch attack"},
+    {name:"Cloak of invisibility", price:"500,000 gp", qty:"Only 1, ever", desc:""},
+    {name:"Grenade launcher", price:"5,500 gp", qty:"Only 1, ever", desc:"Tech (4)"},
+    {name:"Screwdriver, acoustic", price:"1,250 gp", qty:"Only 1, ever", desc:"Tech (3); grants adv. on thieves’ tools checks"},
+    {name:"Tome of clear thought", price:"50,000 gp", qty:"Only 1, ever", desc:"Title: “Introduction to Quantum Physics”"},
+    {name:"Tome of understanding", price:"50,000 gp", qty:"Only 1, ever", desc:"Title: “Farmer’s Almanac”"}
+  ]
+}
+};
+
+// --- LOGIC ---
+const QUALITIES = ["Atrocious", "Poor", "Medium", "Good", "Excellent"];
+const ITEMS_PER_PAGE = 20;
+let currentPage = 0;
+let currentStock = [];
+
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+function rollDice(str) {
+  if (!str || str.includes("Only") || str.includes("Unlimited") || str.includes("Made") || str.includes("Varies")) return str || "1";
+  const m = str.match(/(\d*)\s*d\s*(\d+)(?:\s*([×x*])\s*(\d+))?/);
+  if (!m) return str;
+  let rolls = m[1] ? parseInt(m[1]) : 1;
+  let sides = parseInt(m[2]);
+  let total = 0;
+  for(let i=0; i<rolls; i++) total += rand(1, sides);
+  if(m[3]) total *= parseInt(m[4] || 1);
+  return total.toString();
+}
+
+function generate(type, isRandom=false) {
+    let merchantType = type;
+    let mainRoll = 0;
+    
+    // 1. Handle random roll (1-100)
+    if(isRandom) {
+        mainRoll = rand(1, 100);
+        if(mainRoll <= 5) merchantType = "Alcohol and refreshment";
+        else if(mainRoll <= 9) merchantType = "Animals";
+        else if(mainRoll <= 13) merchantType = "Books and maps";
+        else if(mainRoll <= 17) merchantType = "Flowers and seeds";
+        else if(mainRoll <= 22) merchantType = "Food and animal products";
+        else if(mainRoll <= 26) merchantType = "Furniture and interior decor";
+        else if(mainRoll <= 31) merchantType = "High fashion";
+        else if(mainRoll <= 35) merchantType = "Jewelry and gems";
+        else if(mainRoll <= 40) merchantType = "Knick-knacks";
+        else if(mainRoll <= 45) merchantType = "Leatherworking";
+        else if(mainRoll <= 49) merchantType = "Mechanical contraptions";
+        else if(mainRoll <= 54) merchantType = "Medium and heavy armor";
+        else if(mainRoll <= 58) merchantType = "Potions, poisons, and herbs";
+        else if(mainRoll <= 62) merchantType = "Religious idols and blessings";
+        else if(mainRoll <= 66) merchantType = "Songs and instruments";
+        else if(mainRoll <= 70) merchantType = "Spell scrolls and tomes";
+        else if(mainRoll <= 74) merchantType = "Tattoos";
+        else if(mainRoll <= 78) merchantType = "Thieving supplies";
+        else if(mainRoll <= 83) merchantType = "Tools";
+        else if(mainRoll <= 87) merchantType = "Vehicles and transportation";
+        else if(mainRoll <= 92) merchantType = "Weapons";
+        else if(mainRoll <= 96) merchantType = "Witchcraft";
+        else merchantType = "Legendary Merchant"; // 97-100
+    }
+
+    // 2. RESOLVE GENERIC "Legendary Merchant" TO A SPECIFIC SUBTYPE
+    // This fixes both the button (Option 31) and the random 97-100 roll
+    if (merchantType === "Legendary Merchant") {
+        let legRoll = rand(1, 20);
+        if (legRoll <= 2) merchantType = "Legendary: Astral traveler";
+        else if (legRoll <= 6) merchantType = "Legendary: Enchantments";
+        else if (legRoll === 7) merchantType = "Legendary: Fey bargains";
+        else if (legRoll <= 11) merchantType = "Legendary: Magic items";
+        else if (legRoll <= 14) merchantType = "Legendary: Magical creatures";
+        else if (legRoll <= 18) merchantType = "Legendary: Necromancy";
+        else if (legRoll === 19) merchantType = "Legendary: Needful things";
+        else merchantType = "Legendary: Time-lost";
+    }
+
+  // Roll for quality (1d20)
+  let qualityRoll = rand(1, 20);
+  let maxQualityIdx = qualityRoll <= 2 ? 0 : qualityRoll <= 6 ? 1 : qualityRoll <= 12 ? 2 : qualityRoll <= 17 ? 3 : 4;
+  if(merchantType.startsWith("Legendary:")) maxQualityIdx = Math.max(2, maxQualityIdx); // Legendary min Medium
+
+  // Generate stock
+  currentStock = [];
+  for(let i=0; i<=maxQualityIdx; i++) {
+    let q = QUALITIES[i];
+    let items = merchantData[merchantType]?.[q];
+    if(!items) continue;
+    
+    let count = rand(1, 8); // Roll 1d8 items for this quality tier
+    for(let j=0; j<count && j<items.length; j++) {
+      let it = items[j];
+      currentStock.push({...it, quality: q, qty: rollDice(it.qty)});
+    }
+  }
+
+  // Display Results
+  currentPage = 0;
+  document.getElementById('result').classList.add('active');
+  renderHeader(merchantType, isRandom ? mainRoll : 0, QUALITIES[maxQualityIdx], qualityRoll);
+  renderStock();
+}
+
+function renderHeader(type, roll, quality, qualityRoll) {
+  let priceMod = "1d10 × 20 gp";
+  if(quality === "Poor") priceMod = "1d10 × 50 gp";
+  else if(quality === "Medium") priceMod = "1d10 × 100 gp";
+  else if(quality === "Good") priceMod = "1d10 × 250 gp";
+  else if(quality === "Excellent") priceMod = "1d10 × 500 gp";
+
+  let discountRoll = rand(1, 100);
+  let dc = 0, discount = "0%";
+  if(discountRoll <= 50) { dc = 25; discount = "10%"; }
+  else if(discountRoll <= 75) { dc = 18; discount = "15%"; }
+  else if(discountRoll <= 85) { dc = 15; discount = "20%"; }
+  else if(discountRoll <= 95) { dc = 13; discount = "25%"; }
+  else if(discountRoll <= 100) { dc = 11; discount = "30%"; }
+
+  document.getElementById('header').innerHTML = `
+    <div class="merchant-header">
+      <h2>${type}</h2>
+      <div class="stats">
+         <span class="stat-badge">Quality: ${quality}</span>
+        <span class="stat-badge">Gold On Hand: ${priceMod}</span>
+        <span class="stat-badge">DC to Haggle: ${dc}</span>
+        <span class="stat-badge">Discount: ${discount}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderStock() {
+  const stockEl = document.getElementById('stock');
+  if(currentStock.length === 0) {
+    stockEl.innerHTML = '<p>No specific items listed for this merchant.</p>';
+    return;
+  }
+
+  const totalPages = Math.ceil(currentStock.length / ITEMS_PER_PAGE);
+  const start = currentPage * ITEMS_PER_PAGE;
+  const end = start + ITEMS_PER_PAGE;
+  const pageItems = currentStock.slice(start, end);
+
+  let html = '';
+  let currentQ = '';
+
+  pageItems.forEach(item => {
+    if(item.quality !== currentQ) {
+      currentQ = item.quality;
+      html += `<div class="quality-section ${currentQ}"><div class="quality-title"><span>${currentQ} Quality Items</span><span>Count: ${pageItems.filter(x=>x.quality===currentQ).length}</span></div>`;
+    }
+    html += `
+      <div class="item">
+        <div class="item-name">${item.name}</div>
+        <div class="item-meta">
+          <span class="item-price">${item.price}</span>
+          <span class="item-qty">In Stock: ${item.qty}</span>
+        </div>
+        ${item.desc ? `<div class="item-desc">${item.desc}</div>` : ''}
+      </div>
+    `;
+  });
+
+  // Close the last section div if it exists
+  if(currentQ) html += '</div>';
+
+  stockEl.innerHTML = html;
+
+  // Update pagination controls
+  document.getElementById('pageInfo').textContent = `Page ${currentPage + 1} of ${totalPages}`;
+  document.getElementById('prevBtn').disabled = currentPage === 0;
+  document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1;
+}
+
+function changePage(direction) {
+  const totalPages = Math.ceil(currentStock.length / ITEMS_PER_PAGE);
+  currentPage += direction;
+  if(currentPage < 0) currentPage = 0;
+  if(currentPage >= totalPages) currentPage = totalPages - 1;
+  renderStock();
+  window.scrollTo(0, document.getElementById('stock').offsetTop - 20);
+}
+
+// Build Menu Dynamically
+function buildMenu() {
+  const menu = document.getElementById('menu');
+  const stdMerchants = [
+    "Alcohol and refreshment", "Animals", "Books and maps", "Flowers and seeds", 
+    "Food and animal products", "Furniture and interior decor", "High fashion",
+    "Jewelry and gems", "Knick-knacks", "Leatherworking", "Mechanical contraptions",
+    "Medium and heavy armor", "Potions, poisons, and herbs", "Religious idols and blessings",
+    "Songs and instruments", "Spell scrolls and tomes", "Tattoos", "Thieving supplies",
+    "Tools", "Vehicles and transportation", "Weapons", "Witchcraft"
+  ];
+  
+  let html = '<h3 style="grid-column: 1/-1; margin-bottom: 5px;">Standard Merchants:</h3>';
+  stdMerchants.forEach((m, i) => {
+    html += `<button class="btn" onclick="generate('${m}')">${i+1}. ${m}</button>`;
+  });
+
+  html += '<h3 style="grid-column: 1/-1; margin-top: 15px; margin-bottom: 5px;">Legendary Merchants:</h3>';
+  const legMerchants = [
+    "Astral traveler", "Enchantments", "Fey bargains", "Magic items",
+    "Magical creatures", "Necromancy", "Needful things", "Time-lost"
+  ];
+  legMerchants.forEach((m, i) => {
+    html += `<button class="btn legendary" onclick="generate('Legendary: ${m}')">${23+i}. Legendary: ${m}</button>`;
+  });
+  html += `<button class="btn legendary" onclick="generate('Legendary Merchant')">31. [ROLL] Random Legendary Type</button>`;
+
+  html += '<h3 style="grid-column: 1/-1; margin-top: 15px; margin-bottom: 5px;">Random Generation:</h3>';
+  html += `<button class="btn random" onclick="generate(null, true)">32. [RANDOM] Roll Everything</button>`;
+  
+  menu.innerHTML = html;
+}
+
+// Initialize
+buildMenu();
+</script>
+</body>
+</html>

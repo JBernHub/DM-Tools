@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random NPC Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .output {
+            margin-top: 1.5rem;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: left;
+        }
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.5rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px dashed #dee2e6;
+        }
+        .stat:last-child {
+            border-bottom: none;
+        }
+        .label {
+            font-weight: 600;
+            color: #555;
+        }
+        .value {
+            color: #222;
+            font-weight: 500;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-top: 1.5rem;
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border: 1px solid #3498db;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .back-btn:hover {
+            background-color: #3498db;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>NPC Generator</h1>
+    <button id="generateBtn">Generate NPC</button>
+    <div id="output" class="output" style="display: none;">
+        <div class="stat"><span class="label">Name:</span> <span class="value" id="outName"></span></div>
+        <div class="stat"><span class="label">Sex:</span> <span class="value" id="outSex"></span></div>
+        <div class="stat"><span class="label">Race:</span> <span class="value" id="outRace"></span></div>
+        <div class="stat"><span class="label">Class:</span> <span class="value" id="outClass"></span></div>
+        <div class="stat"><span class="label">Alignment:</span> <span class="value" id="outAlign"></span></div>
+        <div class="stat"><span class="label">Level:</span> <span class="value" id="outLevel"></span></div>
+    </div>
+    <a href="index.html" class="back-btn">← Back to Index</a>
+</div>
+
+<script>
+    // Raw syllable data from name_syll.txt
+    const SYLLABLE_DATA = `First
+Ad Ak Ar Ax Bact Chog Chud Dar Derg Dir
+Dra Drix Dutt Erd Gid Glak Gna Gner Gnild Gog
+Grakk Grux Guz Hatr Hauk Hdra Hex Hust Ig Jask
+Jax Jeg Ka Kag Kank Khur Klut Kolch Kon Kor
+Kosk Kra Krag Kru Lak Lat Lig Lut Makt Mlok
+Mulk Naax Nabd Nek Nex Nid Nox Nub Nud Nux
+Ok Org Osk Pec Pent Plag Pyx Rek Sark Ska
+Skeg Skek Skut Strak Sut Szat Tchad Telg Ter Thauc
+Tog Tok Tor Urg Usk Ust Ux Vax Vekk Vog
+Vurg Xag Xeg Xug Yawg Yed Zet Zixt Zok Zuk
+Ald Arn Asth Ba Baad Bal Banth Bhur Bol Chun
+Del Din Djal Dloth Dole Dom Dor Drul Duhl Fen
+Fer Fith Flar Fren Gaw Ghaz Gho Golm Gren Han
+Harj Harl Harn Hath Haz Henj Hsar Ilb Irb Jad
+Jos Kan Kiz Kho Krell Kull Mar Mox Na Nal
+Nath Nau Naz Neb Nen Nind Nuth Ob Orn Pand
+Pulm Ran Saad Sharn Sheb Shenx Shup Silch Snal Taw
+Teh Tev Thad Thang Tild Tine Treen Trell Trogh Trilt
+Trul Tsanth Tscho Tsith Tu Tul Ur Weft Weng Xal
+Xin Xun Yahb Yan Yest Yos Za Zilx Zon Zor
+Am Az Eesh Ell Erm Esh Hoom Hu Ith Izz
+Leng Lesh Lim Lith Lomb Loal Loor Lor Lull Mai
+Mal Mo Mong Mor Morm Moth Moy Mu Mul Mung
+Murr Nam Neesh Om Ong Oob Oom Oor Ooth Orth
+Oth Phal Phol Rhan Rohm Ru Ruum Ruz Sarm Sha
+Shai Shan Shar Shim Sho Shol Shoth Sile Smuu Soom
+Soor Su Suun Syth Thaa Thal Thay Theem Thir Thom
+Thule Thuu Um Uth Vehm Vesh Vho Vil Vith Vooz
+Voth Voum Vur Wush Xool Yah Yath Ye Yi Yoh
+Yom Yoth Yu Zem Zha Zhai Zil Zo Zoi Zuul
+An Asf Atht Bau Bel Besh Boa Chiv Dal Darth
+Dith Dos Drau Drax Dro Elb Faer Faerl Ferz Flaj
+Foum Ful Fuln Gath Gen Ghi Ghul Goch Gul Ight
+Inth Jabb Jal Jiv Karg Khal Koh Kraa Kyor Larn
+Leil Lek Lerr Leth Lil Liv List Lol Luss Luth
+Misk Mour Myrrh Nlaa Nluu Oast Pan Pancz Pav Pertz
+Quin Rath Reen Rew Rorn Sarn Sind Skex Slaur Snik
+Sund Tal Tam Tau Tende Thig Trip Tsai Ul Vaed
+Val Vel Veld Vitze Vos Vree Wyx Xan Xem Xin
+Xirth Yimp Yisb Yisg Yorn Yss Zent Zhar Zorr Zuze
+Other
+ach adz ak ark az balg bilg blid blig blok
+blot bolg bot bug burk dokh drik driz duf flug
+ga gad gag gah gak gar gat gaz ghag ghak
+git glag glak glat glig gliz glok gnat gog grak
+grat guk hig irk kak khad krig lag lak lig
+likk loz luk mak maz miz mub nad nag naz
+nig nikk nogg nok nukk rag rak rat rok shrig
+shuk skrag skug slai slig slog sna snag snark snat
+snig snik snit sog spik stogg tog urf vark yad
+yagg yak yark yarp yig yip zat zib zit ziz
+ag aug bad bag bakh bash baz blag brag brog
+bruz dag dakk darg dob dog drab dug dur gash
+ghaz glakh glaz glob glol gluf glur gnarl gnash gnub
+gob gokh gol golk gor grakh grash grath graz grot
+grub grud gud gut hag hakk hrat hrog hrug khag
+khar krag krud lakh lash lob lub lud luf luk
+molk muk muz nar ogg olg rag rash rogg rorg
+rot rud ruft rug rut shad shag shak shaz shog
+skar skulg slur snar snorl snub snurr sod stulg thak
+trog ug umsh ung uth yakh yash yob zahk zog
+argh barsh bog burz dof drok drub drug dub dug
+dul dursh dush duz faug fug ghakh ghar ghash ghol
+ghor ghukk ghul glub glud glug gluz gom grad grash
+grob grogg grok grol gru gruf gruk grul grum grumf
+grut gruz guhl gulv hai hrung hur hurg kai klob
+krod kug kulk kur lorg lug lukh lum lurz lush
+luz makh maug molg mud mug mul murk muzd nakh
+narg obb rolb rukh ruz sharg shruf shud shug shur
+shuz slub slud slug snad snog thrag thulk thurk trug
+ulg ur urd urgh urkh uz yug yur zud zug
+ahg baod beegh bohr bul buli burh buri chah dhak
+digri dum eghi ehm faogh feehm ghad ghah gham ghan
+ghat ghaw ghee ghish ghug giree gonkh goun goush guh
+gunri hah hani haogh hatoo heghi heh hoo houm hree
+ig kham khan khaz khee khem khuri logh lugh maoh
+meh mogh mouh mugh naoh naroo nham nuh ob oli
+orf ough ouh peh pogh pugh puh quagi rahoo rhoo
+rifoo ronkh rouk saom saori shehi shlo shom shour shul
+snaoh suhi suth teb thom toudh tregh tuhli ub urush
+ush vuh wah wuh yaum yauth yeeh yih yuh zham
+bal durn na bor bis
+bord from nor din da
+born fror nord in dis
+brim fuld orm in dis
+brod fund skand in dis
+brokk gim skond ir dis
+brom glo storn li ga
+bru gond strom li hild
+bur gord stur lin is
+burl gorm sturl nir is
+da grad sund or lif
+dal grim thor ri lind
+dolg grod thorn ri lis
+dor grom thra rin na
+dorm guld thro rok nis
+dral gund throl ror ris
+drim gur thror rur rith
+drom hord thru vi run
+dur horn thrur vir run
+durm hra thund vor vis
+ad blanc falc mil ald a
+adel boff ferd mung ard a
+adr bomb frob od ert a
+ail bram fulb oth fast a
+alb bung gam sab o a
+alm droc hald sam o ia
+amb drog ham seg o ia
+band durl hasc serl o ice
+bard emm hod tob o ily
+ben erd hug wan old ina
+biff ern iv wig win wina
+bild ever mark wyd wise wisa
+an im aeg lith ad ad edel
+ar in ael maeg al dan el
+cal ir aer mind am del eth
+car ist aes mith an dil ian
+cel lar aeth nith ar dir iel
+cir lir bel rael as fal iel
+clar lor ber rind eb ion ien
+el mar cael saer ed ion loth
+elb mel caer sar el lad mir
+er mer cris seld em las rial
+erl mir ear ser en lin rian
+est nim elth sil er nar riel
+far nin eol silm es or riel
+fin nir faer sind ev orn rien
+gal ral fean thael il ras ril
+gan ran find thaer in rior roël
+gar rel ith thal ir rod sil
+gel ril laeg thel ol rond wë
+gil rin lend ther thal ros wen
+ilm rim lind thir thon thir wen
+bris iphil opal bik dee
+cryl ispel oris brix kiss
+elsi istle orif frell la
+ember jat peri fret liss
+esk jost sarm kin mee
+feris jus sprin mist niss
+frimi lirra stith mit nyx
+gan mali tansi rix ree
+glink mink tirra tross riss
+hal mirra trump twik sa
+hel mistle whis win tiss
+hist ninka zando zisk ynx
+dex gliss tink aldo afer
+flax goss tiss allo amer
+flim hex trill amo anel
+fliss liss trist ando arel
+flix min twill aroll asti
+foss misk twiss aron efer
+frisk raff twisp asto enti
+friss ress twix endo erel
+gess riff weft eroll ifer
+glan rill wesk eron imer
+glax saff winn esto inel
+glim shim wisp ondo irel
+bal myr bur olg dyl ald bra
+ber ne chor on el eld dra
+char nel col or en id dril
+de nil dol org er ild ene
+div no dor oth id ird hel
+dri nyl drom pan il lim ia
+dul rel dur pel is naz il
+eil rha en por lav nid iln
+ek ru er sek len nil ira
+im sab gon sol lev nim istra
+ins sin gul sun lin red ith
+ist sul jend ten liv rid iza
+jeg sus kil thal pel rim lin
+jer tel lul tor pir riv na
+jys tul mab torm ra ul ra
+lil ver maz vek ral uld rin
+mar vil mol vol ril vid sil
+mer vir nor vor rin vim tra
+mez vril noth yel sin vir vra
+mor yas ol yol syl viz vril
+aag karg ulthu arag anil
+alur khark urz bru bau
+arak krau uti drul diu
+az kriv uznid inu dusla
+azik kuaz virn lank giu
+bral kudu vlaaj lun ija
+braz luri vlag lurr izil
+bruh mulk vlash lurug jiul
+draan nau vluk nal lihyl
+drulg nid vluzak rul lin
+guz ninj vraz ruzuk lyrr
+haug nul vulk salk nalu
+idru nym xau sul rhyl
+jhaal ranag xid suruk rula
+jid rilthu xul ull skiu
+jiu ruk xuraj undak sula
+jur rulk zauv uvik ulla
+jurg ruz zug xulg xhiu
+jurz saag zuldu zu zihyl
+kaaz skaur zuv zuk ziu
+abra har phrixu bazius
+adastra helio porphyro boros
+adra huro pyra bradax
+anca iul rhada calchax
+andra jalan rhe cordax
+arag jarzem rhodo lagon
+archo jazra rau malax
+atra jurga sar mandros
+bar keruxa sarcu manthys
+bara kralka sarda mordax
+beru lazulo scarva nadral
+bhakri majuri sidereo nalux
+bia malacho skhia neriax
+bra mar sulchru phylax
+brado marmora tchalcedo vorax
+brima melkar tchazar vorung
+cadra orgra trocho xenor
+chro ouro vra zuthrax
+chryso perido zalar zzebrax
+glau phoro zerul zzemal
+alu alz avu azaz baph baz cha fraz garl garu
+gla hra mal nahu nal nasu paz raz tha thalu
+bre dre gel gle gre hez rez rezu tze gzi
+hriz hzi idrau itha ixu lilu riz yil dromu gro
+lol moz olth oxu sco tho bu bul buz chru
+dru ghu gura guz hruz huz kul lurhz muz ru
+shu ssu szul thu ulchru utu vul zu zul baal
+ghaa kraa phaal raal saa bial oazo soaz ruaz gya
+yaa bael nee ziel yee aiaz shai reoz duoi drau
+ghau glau mau sau tzau iuz juu rhuu vuul zuu
+agh alg barg chag ghad glab grag hrag kag kwarg
+mag nalb sag tharg brelg dergh dregh drelb felg heg
+kleg igg rigg blog drog grolb kolg krolg lolg mog
+morg nog obb ogg olb rogg strog thog trob tzolg
+vogt bub bulg druj durg frub fulg gub hrud hurg
+jub julb nud nug nulb rung shub stug sug szug
+trulg ulb urb vub vulb xub zub zug zugt aab
+aag glaag haag naag raag boaj moab uag leegh yeb
+yeeg aig yibb iog droog nyog aug baug daurg draug
+gaub laug maug naug raug saug thaug iub iug ruug
+ach akk ash azt bahor bar bas brax charn dak
+hrax lach lazt mat nam nazt ralk rhast sark slarv
+tash thak thalur thalk vach vap dek ech fesh gek
+hrek lech met ner ter blik gith igm inax irsch
+kir lis lisk lith nilv nirr tlizit bor chon goch
+gor goth hoth khor kos loch lok loth moch moth
+noc och oth rolk roth sot soth vrok dun gur
+hun luth muth nur rutt sut sutt szut tur urt
+utuk uzt krych nyth slyth gaan xaas boak ruaak yalm
+haerx iex draum gaur glaur rauk saur duum nuur ruun
+adan asan jasan palant sarnat valmar al el
+adrast asarn jasarm palor solar valnar an en
+alant astar javral raman talan valnor ar er
+amad atar kalad ranal talar valon as es
+aman atlan kalar ranar talas valor at et
+amar avar kalas rasan talon vanar ath eth
+amars avlant kalast ravan taran varal ath eth
+amart avral kasal samar taval varam ath eth
+ansam jalan katarn saran valant varan anth enth
+arad jalkar kaval sarat valar varat athal eleth
+aram jaran klaron sardan valdor vardar athar ereth
+aran jasal palad sardar valkar voltar athas eseth`;
+
+    const { first: firstSylls, other: otherSylls } = parseSyllables(SYLLABLE_DATA);
+
+    function parseSyllables(raw) {
+        const lines = raw.trim().split('\n');
+        const first = [];
+        const other = [];
+        let currentSet = null;
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            if (trimmed === 'First') { currentSet = 'first'; continue; }
+            if (trimmed === 'Other') { currentSet = 'other'; continue; }
+            const sylls = trimmed.split(/\s+/);
+            if (currentSet === 'first') first.push(...sylls);
+            else if (currentSet === 'other') other.push(...sylls);
+        }
+        return { first, other };
+    }
+
+    function generateName() {
+        let firstName = firstSylls[Math.floor(Math.random() * firstSylls.length)];
+        const fnCount = Math.floor(Math.random() * 4);
+        for (let i = 0; i < fnCount; i++) firstName += otherSylls[Math.floor(Math.random() * otherSylls.length)];
+
+        let lastName = firstSylls[Math.floor(Math.random() * firstSylls.length)];
+        const lnCount = Math.floor(Math.random() * 4);
+        for (let i = 0; i < lnCount; i++) lastName += otherSylls[Math.floor(Math.random() * otherSylls.length)];
+        
+        return `${firstName} ${lastName}`;
+    }
+
+    const rnd = (max) => Math.floor(Math.random() * max) + 1;
+
+    function generateSex() {
+        const gen = rnd(100);
+        return gen <= 53 ? "Male" : "Female";
+    }
+
+    function generateRace() {
+        const rac = rnd(100);
+        if (rac <= 13) return "Human";
+        if (rac <= 18) return "High Elf";
+        if (rac <= 23) return "Dark Elf";
+        if (rac <= 28) return "Wood Elf";
+        
+        if (rac === 29) {
+            const season = rnd(4);
+            if (season === 1) return "Spring Eladrin";
+            if (season === 2) return "Summer Eladrin";
+            if (season === 3) return "Autumn Eladrin";
+            return "Winter Eladrin";
+        }
+        
+        if (rac === 30) return "Shadokai";
+        if (rac <= 34) return "Half Elf";
+        if (rac <= 39) return "Hill Dwarf";
+        if (rac <= 44) return "Mountain Dwarf";
+        if (rac === 45) return "Duergar";
+        if (rac <= 50) return "Forest Gnome";
+        if (rac <= 55) return "Rock Gnome";
+        if (rac === 56) return "Deep Gnome";
+        if (rac <= 61) return "Stout Halfling";
+        if (rac <= 66) return "Lightfoot Halfling";
+        if (rac === 67) return "Githyanki";
+        if (rac === 68) return "Githzerai";
+        if (rac === 69) return "Orc";
+        if (rac === 70) return "Half Orc";
+        if (rac === 71) return "Goblin";
+        if (rac === 72) return "Hobgoblin";
+        if (rac === 73) return "Kobold";
+        if (rac === 74) return "Kenku";
+        if (rac === 75) return "Minotaur";
+        if (rac === 76) return "Tabaxi";
+        if (rac === 77) return "Lionel";
+        if (rac === 78) return "Goliath";
+        
+        if (rac === 79) {
+            const elem = rnd(4);
+            if (elem === 1) return "Air Gensai";
+            if (elem === 2) return "Fire Gensai";
+            if (elem === 3) return "Earth Gensai";
+            return "Water Gensai";
+        }
+        
+        if (rac === 80) return "Aaracokra";
+        if (rac === 81) return "Luxodon";
+        if (rac === 82) return "Teifling";
+        if (rac === 83) return "Aasimar";
+        if (rac === 84) return "Firbolg";
+        if (rac === 85) return "Yuan-Ti";
+        if (rac === 86) return "Shifter";
+        if (rac === 87) return "Changling";
+        if (rac === 88) return "Bugbear";
+        if (rac === 89) return "Haregon";
+        if (rac === 90) return "Fairy";
+        
+        if (rac === 91) {
+            const drag = rnd(14);
+            if (drag === 1) return "Red Dragonborn";
+            if (drag === 2) return "White Dragonborn";
+            if (drag === 3) return "Blue Dragonborn";
+            if (drag === 4) return "Green Dragonborn";
+            if (drag === 5) return "Black Dragonborn";
+            if (drag === 6) return "Gold Dragonborn";
+            if (drag === 7) return "Silver Dragonborn";
+            if (drag === 8) return "Copper Dragonborn";
+            if (drag === 9) return "Brass Dragonborn";
+            if (drag === 10) return "Bronze Dragonborn";
+            if (drag === 11) return "Amethyst Dragonborn";
+            if (drag === 12) return "Crystal Dragonborn";
+            if (drag === 13) return "Emerald Dragonborn";
+            return "Ruby Dragonborn";
+        }
+        
+        if (rac === 92) return "Lizard Folk";
+        if (rac === 93) return "Kender";
+        if (rac === 94) return "Owlkin";
+        if (rac === 95) return "Astral Elf";
+        if (rac === 96) return "Autognome";
+        if (rac === 97) return "Giff";
+        if (rac === 98) return "Hadozee";
+        if (rac === 99) return "Plasmoid";
+        return "Thri-Keen";
+    }
+
+    function generateClass() {
+        let tra = rnd(100);
+        if (tra <= 75) return "Commoner";
+        if (tra <= 89) return "Warrior";
+        if (tra <= 95) return "Expert";
+        if (tra <= 99) return "Spellcaster";
+        
+        const subRoll = rnd(12);
+        if (subRoll === 1) return "Bard";
+        if (subRoll === 2) return "Barbarian";
+        if (subRoll === 3) return "Cleric";
+        if (subRoll === 4) return "Druid";
+        if (subRoll === 5) return "Fighter";
+        if (subRoll === 6) return "Rogue";
+        if (subRoll === 7) return "Monk";
+        if (subRoll === 8) return rnd(100) <= 60 ? "Witch" : "Warlock";
+        if (subRoll === 9) return rnd(100) <= 40 ? "Sorcerer" : "Artificer";
+        if (subRoll === 10) return "Wizard";
+        if (subRoll === 11) return "Ranger";
+        if (subRoll === 12) return "Paladin";
+        return "Commoner";
+    }
+
+    function generateAlignment() {
+        const roll = rnd(10);
+        if (roll === 1) return "Lawful Good";
+        if (roll === 2) return "Lawful Evil";
+        if (roll === 3) return "Chaotic Good";
+        if (roll === 4) return "Chaotic Evil";
+        if (roll <= 6) return "Lawful Neutral";
+        if (roll <= 8) return "True Neutral";
+        return "Chaotic Neutral";
+    }
+
+    function generateLevel() {
+        const levdeta = rnd(10);
+        const levdetb = rnd(10);
+        const levdet = levdeta + levdetb;
+
+        if (levdet === 2 || levdet === 20) return rnd(10) + 10;
+        if (levdet >= 3 && levdet <= 5) return rnd(10) + 5;
+        if (levdet >= 6 && levdet <= 16) return rnd(6);
+        if (levdet >= 17 && levdet <= 19) return rnd(10) + 5;
+        return rnd(6);
+    }
+
+    document.getElementById('generateBtn').addEventListener('click', () => {
+        try {
+            const name = generateName();
+            const sex = generateSex();
+            const race = generateRace();
+            const charClass = generateClass();
+            const align = generateAlignment();
+            const level = generateLevel();
+
+            document.getElementById('outName').textContent = name;
+            document.getElementById('outSex').textContent = sex;
+            document.getElementById('outRace').textContent = race;
+            document.getElementById('outClass').textContent = charClass;
+            document.getElementById('outAlign').textContent = align;
+            document.getElementById('outLevel').textContent = level;
+            
+            document.getElementById('output').style.display = 'block';
+        } catch (err) {
+            console.error("Generation error:", err);
+            alert("Something went wrong. Check the browser console for details.");
+        }
+    });
+</script>
+
+</body>
+</html>
