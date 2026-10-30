@@ -63,20 +63,14 @@
         .controls label { color: white; font-weight: bold; }
         .controls input { background: white; color: black; }
 
-        button, .btn-back {
+        button, .btn-back, .btn-index {
             background: #f39c12; color: white; border: none; padding: 10px 20px;
             border-radius: 5px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: background 0.2s;
             text-decoration: none; display: inline-block;
         }
         button:hover { background: #e67e22; }
-        
-        /* Back Button Styling */
-        .btn-back {
-            background: #7f8c8d;
-        }
-        .btn-back:hover {
-            background: #636e72;
-        }
+        .btn-back, .btn-index { background: #7f8c8d; }
+        .btn-back:hover, .btn-index:hover { background: #636e72; }
 
         .btn-pdf { background: #2c3e50; width: 100%; margin-top: 10px; }
         .btn-pdf:hover { background: #1a252f; }
@@ -92,6 +86,40 @@
         .mine-slot span { min-width: 60px; font-size: 0.9em; font-weight: bold; color: var(--accent-color);}
         .mine-slot select { width: auto; flex: 1; }
 
+        /* Breakdown Table Styling */
+        .breakdown-section { margin-top: 25px; }
+        .breakdown-section h3 { margin-top: 0; border-bottom: 2px solid var(--accent-light); padding-bottom: 8px; }
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95em;
+        }
+        .breakdown-table th {
+            background: var(--accent-light);
+            color: var(--accent-color);
+            padding: 8px 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+        .breakdown-table th:last-child { text-align: right; }
+        .breakdown-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .breakdown-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+        .breakdown-table tr:nth-child(even) { background: #fafafa; }
+        .breakdown-table tr.total-row {
+            background: var(--accent-color);
+            color: white;
+            font-weight: bold;
+        }
+        .breakdown-table tr.total-row td { border-bottom: none; padding: 10px 12px; }
+        .breakdown-table tr.subtotal-row {
+            background: var(--accent-light);
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
         @media (max-width: 768px) { .grid, .stat-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -102,9 +130,7 @@
     <p>Enter your manor's values for the year, then calculate to see how your estate fares!</p>
 
     <div class="controls">
-        <!-- NEW BACK BUTTON -->
-        <a href="index.html" class="btn-back">⬅️ Back</a>
-        
+        <a href="index.html" class="btn-index">📖 Return to Index</a>
         <div>
             <label>Current Population:</label>
             <input type="number" id="pop" value="50" min="0">
@@ -113,7 +139,6 @@
     </div>
 
     <div class="grid">
-        <!-- LEFT COLUMN -->
         <div>
             <div class="card">
                 <h2>Land & Assets</h2>
@@ -161,12 +186,10 @@
 
             <div class="card" style="margin-top:20px;">
                 <h2>Rights & Population</h2>
-                
                 <div class="input-group">
                     <label>Max Population (Auto: Staples x 2)</label>
                     <input type="number" id="max_pop" value="0" readonly style="background-color: #eee; cursor: not-allowed;">
                 </div>
-                
                 <hr>
                 <p><em>Per Adult Taxes/Fees (GP)</em></p>
                 <div class="input-group"><label>Fees</label><input type="number" id="right_fees" value="0" step="0.01"></div>
@@ -187,7 +210,6 @@
             </div>
         </div>
 
-        <!-- RIGHT COLUMN -->
         <div>
             <div class="card">
                 <h2>Costs & Upkeep</h2>
@@ -232,25 +254,53 @@
             <div class="stat-box"><strong>Net Profit</strong><span id="resProfit" class="pos">0.00 gp</span></div>
             <div class="stat-box"><strong>Maint. & Repair Roll</strong><span id="resMaint">0%</span></div>
         </div>
+
+        <!-- NEW: INCOME BREAKDOWN -->
+        <div class="breakdown-section">
+            <h3>💰 Income Breakdown</h3>
+            <table class="breakdown-table" id="incomeTable">
+                <thead>
+                    <tr><th>Source</th><th>Amount</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- NEW: COST BREAKDOWN -->
+        <div class="breakdown-section">
+            <h3>💸 Cost Breakdown</h3>
+            <table class="breakdown-table" id="costTable">
+                <thead>
+                    <tr><th>Expense</th><th>Amount</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
         
         <button class="btn-pdf" onclick="exportPDF()">📄 Download Year Report (PDF)</button>
     </div>
 </div>
 
 <script>
-    // =========================================================================
-    // CONFIGURATION DICTIONARIES
-    // =========================================================================
     const INCOME_RATES = {
-        inc_beehive: 1, inc_carpenter: 11.5, inc_dovecote: 5, inc_forest: 4, inc_livestock: 17, 
-        inc_mill: 575, inc_millpond: 29, inc_oven: 134, inc_smith: 11.5, inc_staples: 7.2,
-        inc_cotton: 85, inc_flax: 75, inc_hemp: 75, inc_lumber: 400, inc_olive: 300, 
-        inc_orchard: 10, inc_wool: 5.5, inc_vineyard: 170
+        inc_beehive: 1, inc_carpenter: 10, inc_dovecote: 5, inc_forest: 1, inc_livestock: 1, 
+        inc_mill: 10, inc_millpond: 5, inc_oven: 5, inc_smith: 20, inc_staples: 1,
+        inc_cotton: 1, inc_flax: 1, inc_hemp: 1, inc_lumber: 1, inc_olive: 1, 
+        inc_orchard: 1, inc_wool: 1, inc_vineyard: 2
     };
 
-   const MINE_TYPES = ["Iron", "Lead", "Coal", "Copper", "Salt", "Tin", "Sandstone", "Limestone", "Granite", "Slate", "Marble", "Common Gems", "Quality Gems", "High Quality Gems", "Silver", "Gold"];
+    const INCOME_LABELS = {
+        inc_beehive: "Beehives", inc_carpenter: "Carpenter Shops", inc_dovecote: "Dovecotes",
+        inc_forest: "Forest", inc_livestock: "Livestock", inc_mill: "Mills",
+        inc_millpond: "Millponds", inc_oven: "Communal Ovens", inc_smith: "Smithies",
+        inc_staples: "Staples", inc_cotton: "Cotton", inc_flax: "Flax",
+        inc_hemp: "Hemp", inc_lumber: "Lumber", inc_olive: "Olive Grove",
+        inc_orchard: "Orchard", inc_wool: "Wool", inc_vineyard: "Vineyard"
+    };
+
+    const MINE_TYPES = ["Iron", "Lead", "Coal", "Copper", "Salt", "Tin", "Sandstone", "Limestone", "Granite", "Slate", "Marble", "Common Gems", "Quality Gems", "High Quality Gems", "Silver", "Gold"];
     const YIELD_TYPES = ["Single", "Double", "Triple"];
-    const MINE_RATES = { "Iron": 2000, "Lead": 2000, "Coal": 2000, "Copper": 2000, "Salt": 3333, "Tin": 3333, "Sandstone": 2000, "Limestone": 2666, "Granite": 3333, "Slate": 4000, "Marble": 4666, "Common Gems": 4250, "Quality Gems": 13500, "High Quality Gems": 43500, "Silver": 5500, "Gold": 16500 };
+    const MINE_RATES = { "Iron": 10, "Lead": 10, "Coal": 5, "Copper": 15, "Salt": 20, "Tin": 15, "Sandstone": 5, "Limestone": 5, "Granite": 10, "Slate": 5, "Marble": 20, "Common Gems": 50, "Quality Gems": 100, "High Quality Gems": 250, "Silver": 100, "Gold": 500 };
     const YIELD_MULTIPLIERS = { "Single": 1, "Double": 2, "Triple": 3 };
 
     const EVENTS = [
@@ -265,23 +315,16 @@
 
     function getVal(id) { return parseFloat(document.getElementById(id).value) || 0; }
 
-    // =========================================================================
-    // UI & AUTOMATIC MATH
-    // =========================================================================
     function updateAcreageDisplay() {
         let arable = getVal('acre_arable');
         let cultivated = getVal('acre_cultivated');
         let waste = getVal('acre_waste');
-        
         let fallow = Math.round(arable / 3);
         let maxCultivated = arable - fallow;
-        
         if (cultivated > maxCultivated) { cultivated = maxCultivated; document.getElementById('acre_cultivated').value = cultivated; }
         if (cultivated < 0) { cultivated = 0; document.getElementById('acre_cultivated').value = 0; }
-        
         let pasture = maxCultivated - cultivated;
         let poundIncome = (arable + waste) * 1; 
-        
         document.getElementById('acre_fallow').value = Math.round(fallow);
         document.getElementById('acre_pasture').value = Math.round(pasture);
         document.getElementById('inc_pound').value = Math.round(poundIncome);
@@ -289,8 +332,7 @@
 
     function updateMaxPop() {
         let staples = getVal('inc_staples');
-        let maxPop = staples * 2;
-        document.getElementById('max_pop').value = maxPop;
+        document.getElementById('max_pop').value = staples * 2;
     }
 
     function updateMineSlots() {
@@ -315,20 +357,17 @@
         }
     }
 
-    // Event Listeners
     document.getElementById('acre_arable').addEventListener('input', updateAcreageDisplay);
     document.getElementById('acre_cultivated').addEventListener('input', updateAcreageDisplay);
     document.getElementById('acre_waste').addEventListener('input', updateAcreageDisplay); 
     document.getElementById('inc_staples').addEventListener('input', updateMaxPop);
     document.getElementById('mine_count').addEventListener('input', updateMineSlots);
-    
-    // Run on load
     updateAcreageDisplay();
     updateMaxPop();
     updateMineSlots();
 
     // =========================================================================
-    // CALCULATION ENGINE
+    // CALCULATION ENGINE - NOW TRACKS EVERY LINE ITEM
     // =========================================================================
     function calculateYear() {
         updateAcreageDisplay();
@@ -336,48 +375,166 @@
         
         let population = getVal('pop');
         const maxPop = getVal('max_pop');
-
-        // Cap population to the maximum allowed by Staples
         let effectivePop = Math.min(population, maxPop);
 
-        // 1. Calculate Income
-        let perAdultIncome = getVal('right_fees') + getVal('right_justice') + getVal('right_rent') + getVal('right_tax') + getVal('right_toll');
-        let marketIncome = document.getElementById('right_market_toggle').checked ? (effectivePop * 1) : 0;
-        let fairIncome = document.getElementById('right_fair_toggle').checked ? (effectivePop * 4) : 0;
-        let rightsIncome = (effectivePop * perAdultIncome) + marketIncome + fairIncome;
-        
-        let baseIncome = 0;
-        const incomeFields = ['inc_beehive', 'inc_carpenter', 'inc_dovecote', 'inc_forest', 'inc_livestock', 'inc_mill', 'inc_millpond', 'inc_oven', 'inc_smith', 'inc_staples', 'inc_cotton', 'inc_flax', 'inc_hemp', 'inc_lumber', 'inc_olive', 'inc_orchard', 'inc_wool', 'inc_vineyard'];
-        incomeFields.forEach(id => { baseIncome += getVal(id) * (INCOME_RATES[id] || 1); });
-        baseIncome += getVal('inc_pound'); 
+        // Arrays to collect line items
+        let incomeItems = [];
+        let costItems = [];
 
+        // --- 1. CALCULATE INCOME LINE BY LINE ---
+        let baseIncome = 0;
+
+        // Asset/Crop Income
+        const incomeFields = ['inc_beehive', 'inc_carpenter', 'inc_dovecote', 'inc_forest', 'inc_livestock', 
+                              'inc_mill', 'inc_millpond', 'inc_oven', 'inc_smith', 'inc_staples',
+                              'inc_cotton', 'inc_flax', 'inc_hemp', 'inc_lumber', 'inc_olive', 
+                              'inc_orchard', 'inc_wool', 'inc_vineyard'];
+        
+        incomeFields.forEach(id => {
+            let qty = getVal(id);
+            let rate = INCOME_RATES[id] || 1;
+            let amount = qty * rate;
+            if (amount > 0) {
+                incomeItems.push({ label: INCOME_LABELS[id], amount: amount });
+                baseIncome += amount;
+            }
+        });
+
+        // Pound (auto)
+        let poundAmt = getVal('inc_pound');
+        if (poundAmt > 0) {
+            incomeItems.push({ label: "Animal Pound (Auto)", amount: poundAmt });
+            baseIncome += poundAmt;
+        }
+
+        // Mines
         let mineCount = getVal('mine_count');
         for (let i = 0; i < mineCount; i++) {
             let typeEl = document.getElementById(`mine_type_${i}`);
             let yieldEl = document.getElementById(`mine_yield_${i}`);
-            if (typeEl && yieldEl) baseIncome += (MINE_RATES[typeEl.value] || 0) * (YIELD_MULTIPLIERS[yieldEl.value] || 1);
+            if (typeEl && yieldEl) {
+                let type = typeEl.value;
+                let yieldType = yieldEl.value;
+                let amount = (MINE_RATES[type] || 0) * (YIELD_MULTIPLIERS[yieldType] || 1);
+                if (amount > 0) {
+                    incomeItems.push({ label: `Mine #${i+1}: ${type} (${yieldType})`, amount: amount });
+                    baseIncome += amount;
+                }
+            }
         }
-        
+
+        // Rights Income (per adult)
+        let rightsFields = [
+            { id: 'right_fees', label: 'Fees' },
+            { id: 'right_justice', label: 'Justice' },
+            { id: 'right_rent', label: 'Rent' },
+            { id: 'right_tax', label: 'Tax' },
+            { id: 'right_toll', label: 'Toll' }
+        ];
+        let rightsIncome = 0;
+        rightsFields.forEach(f => {
+            let rate = getVal(f.id);
+            let amount = effectivePop * rate;
+            if (amount > 0) {
+                incomeItems.push({ label: `${f.label} (${effectivePop} × ${rate.toFixed(2)})`, amount: amount });
+                rightsIncome += amount;
+            }
+        });
+
+        // Market & Fair
+        if (document.getElementById('right_market_toggle').checked) {
+            let amt = effectivePop * 1;
+            incomeItems.push({ label: `Weekly Market (${effectivePop} × 1)`, amount: amt });
+            rightsIncome += amt;
+        }
+        if (document.getElementById('right_fair_toggle').checked) {
+            let amt = effectivePop * 4;
+            incomeItems.push({ label: `Biannual Fair (${effectivePop} × 4)`, amount: amt });
+            rightsIncome += amt;
+        }
+
         let totalIncome = baseIncome + rightsIncome;
 
-        // 2. Calculate Fixed Costs
-        let fixedCosts = getVal('cost_assarting') + getVal('staff_chamberlain') + getStewardCost() +
-                         (getVal('staff_barber') * 300) + (getVal('staff_doctor') * 300) + (getVal('staff_falconer') * 300) + 
-                         (getVal('staff_huntsman') * 300) + (getVal('staff_wardrobe') * 300) + (getVal('staff_tailor') * 200);
+        // --- 2. CALCULATE COSTS LINE BY LINE ---
+        let fixedCostsTotal = 0;
 
-        // 3. Roll for Maintenance & Repair
+        // Fixed costs
+        let fixedCostFields = [
+            { id: 'cost_assarting', label: 'Assarting (Flat)' },
+            { id: 'staff_chamberlain', label: 'Chamberlain' }
+        ];
+        fixedCostFields.forEach(f => {
+            let amt = getVal(f.id);
+            if (amt > 0) {
+                costItems.push({ label: f.label, amount: amt });
+                fixedCostsTotal += amt;
+            }
+        });
+
+        // Steward
+        let stewardAmt = getStewardCost();
+        if (stewardAmt > 0) {
+            costItems.push({ label: `Steward (360gp + acreage bonus)`, amount: stewardAmt });
+            fixedCostsTotal += stewardAmt;
+        }
+
+        // Personal Staff
+        let personalStaff = [
+            { id: 'staff_barber', label: 'Barber', rate: 300 },
+            { id: 'staff_doctor', label: 'Doctor', rate: 300 },
+            { id: 'staff_falconer', label: 'Falconer', rate: 300 },
+            { id: 'staff_huntsman', label: 'Huntsman', rate: 300 },
+            { id: 'staff_wardrobe', label: 'Keeper of Wardrobe', rate: 300 },
+            { id: 'staff_tailor', label: 'Tailor', rate: 200 }
+        ];
+        personalStaff.forEach(s => {
+            let count = getVal(s.id);
+            let amt = count * s.rate;
+            if (amt > 0) {
+                costItems.push({ label: `${s.label} (${count} × ${s.rate})`, amount: amt });
+                fixedCostsTotal += amt;
+            }
+        });
+
+        // Percentage-based costs (calculated against total income)
         let maintRepairRate = getMaintRepairRate();
+        let maintConsumptionRate = getMaintConsumptionRate();
 
-        // 4. Calculate Percentage Costs
-        let pctCosts = (getVal('cost_alms') + getMaintConsumptionRate() + getVal('cost_scutage') + 
-                        getVal('cost_tax') + getVal('staff_household') + getVal('staff_laborers') + 
-                        getVal('staff_managerial') + maintRepairRate) / 100;
-        let totalCosts = fixedCosts + (totalIncome * pctCosts);
+        let pctCostFields = [
+            { id: 'cost_alms', label: 'Alms', isRate: true },
+            { label: `Maintenance Consumption (${maintConsumptionRate}%)`, amount: totalIncome * (maintConsumptionRate/100) },
+            { id: 'cost_scutage', label: 'Scutage', isRate: true },
+            { id: 'cost_tax', label: 'Tax', isRate: true },
+            { id: 'staff_household', label: 'Household & Kitchens', isRate: true },
+            { id: 'staff_laborers', label: 'Laborers', isRate: true },
+            { id: 'staff_managerial', label: 'Managerial Staff', isRate: true },
+            { label: `Maintenance & Repair Roll (${maintRepairRate}%)`, amount: totalIncome * (maintRepairRate/100) }
+        ];
 
-        // 5. Roll for General Random Events
+        let pctCostsTotal = 0;
+        pctCostFields.forEach(f => {
+            let amt = 0;
+            if (f.isRate) {
+                let rate = getVal(f.id);
+                amt = totalIncome * (rate / 100);
+                if (amt > 0) {
+                    costItems.push({ label: `${f.label} (${rate}%)`, amount: amt });
+                }
+            } else {
+                amt = f.amount;
+                if (amt > 0) {
+                    costItems.push({ label: f.label, amount: amt });
+                }
+            }
+            pctCostsTotal += amt;
+        });
+
+        let totalCosts = fixedCostsTotal + pctCostsTotal;
+
+        // --- 3. ROLL FOR RANDOM EVENT ---
         let roll = Math.random();
         let cumulativeChance = 0;
-        let triggeredEvent = { name: "Normal Year", effect: () => {} };
+        let triggeredEvent = { name: "Peaceful Year", effect: () => {} };
         for (let evt of EVENTS) {
             cumulativeChance += evt.chance;
             if (roll <= cumulativeChance) { triggeredEvent = evt; break; }
@@ -390,7 +547,7 @@
         let finalCosts = totalCosts * (1 + state.costMod);
         let profit = finalIncome - finalCosts;
 
-        // Render Results
+        // --- 4. RENDER SUMMARY BOXES ---
         document.getElementById('resultsCard').style.display = 'block';
         document.getElementById('resPop').textContent = effectivePop;
         document.getElementById('resEvent').textContent = triggeredEvent.name;
@@ -403,22 +560,73 @@
 
         document.getElementById('resMaint').textContent = maintRepairRate + '%';
 
+        // --- 5. RENDER INCOME BREAKDOWN TABLE ---
+        let incomeTbody = document.querySelector('#incomeTable tbody');
+        incomeTbody.innerHTML = '';
+        incomeItems.forEach(item => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `<td>${item.label}</td><td>${item.amount.toFixed(2)} gp</td>`;
+            incomeTbody.appendChild(tr);
+        });
+        // Subtotal row (before event modifiers)
+        let subIncTr = document.createElement('tr');
+        subIncTr.className = 'subtotal-row';
+        subIncTr.innerHTML = `<td>Base Income Total</td><td>${totalIncome.toFixed(2)} gp</td>`;
+        incomeTbody.appendChild(subIncTr);
+        if (state.incomeMod !== 0) {
+            let modTr = document.createElement('tr');
+            modTr.innerHTML = `<td>Event Modifier (${triggeredEvent.name}: ${(state.incomeMod*100).toFixed(0)}%)</td><td>${(totalIncome * state.incomeMod).toFixed(2)} gp</td>`;
+            incomeTbody.appendChild(modTr);
+        }
+        // Final total
+        let totIncTr = document.createElement('tr');
+        totIncTr.className = 'total-row';
+        totIncTr.innerHTML = `<td>GROSS INCOME</td><td>${finalIncome.toFixed(2)} gp</td>`;
+        incomeTbody.appendChild(totIncTr);
+
+        // --- 6. RENDER COST BREAKDOWN TABLE ---
+        let costTbody = document.querySelector('#costTable tbody');
+        costTbody.innerHTML = '';
+        costItems.forEach(item => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `<td>${item.label}</td><td>${item.amount.toFixed(2)} gp</td>`;
+            costTbody.appendChild(tr);
+        });
+        // Subtotal (before event modifiers)
+        let subCostTr = document.createElement('tr');
+        subCostTr.className = 'subtotal-row';
+        subCostTr.innerHTML = `<td>Base Costs Total</td><td>${totalCosts.toFixed(2)} gp</td>`;
+        costTbody.appendChild(subCostTr);
+        if (state.costMod !== 0) {
+            let modTr = document.createElement('tr');
+            modTr.innerHTML = `<td>Event Modifier (${triggeredEvent.name}: +${(state.costMod*100).toFixed(0)}%)</td><td>${(totalCosts * state.costMod).toFixed(2)} gp</td>`;
+            costTbody.appendChild(modTr);
+        }
+        // Final total
+        let totCostTr = document.createElement('tr');
+        totCostTr.className = 'total-row';
+        totCostTr.innerHTML = `<td>TOTAL COSTS</td><td>${finalCosts.toFixed(2)} gp</td>`;
+        costTbody.appendChild(totCostTr);
+
         // Save data for PDF
         window.currentCalc = {
             pop: effectivePop,
-            income: finalIncome,
-            costs: finalCosts,
+            incomeItems: incomeItems,
+            costItems: costItems,
+            totalIncome: totalIncome,
+            totalCosts: totalCosts,
+            finalIncome: finalIncome,
+            finalCosts: finalCosts,
             profit: profit,
             maintRepair: maintRepairRate,
-            event: triggeredEvent.name
+            event: triggeredEvent.name,
+            incomeMod: state.incomeMod,
+            costMod: state.costMod
         };
 
         document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth' });
     }
 
-    // =========================================================================
-    // HELPER CALCULATIONS
-    // =========================================================================
     function getTotalAcres() { return getVal('acre_arable') + getVal('acre_pasture') + getVal('acre_waste'); }
     function getMaintConsumptionRate() {
         let totalAcres = getTotalAcres();
@@ -435,7 +643,7 @@
     }
 
     // =========================================================================
-    // PDF EXPORT
+    // PDF EXPORT - NOW INCLUDES FULL BREAKDOWNS
     // =========================================================================
     function exportPDF() {
         if (!window.currentCalc) return alert("Calculate a year first!");
@@ -443,29 +651,70 @@
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const data = window.currentCalc;
+        let yPos = 20;
 
+        // Title
         doc.setFontSize(20);
         doc.setTextColor(139, 69, 19);
-        doc.text("Manor Yearly Report", 105, 20, { align: 'center' });
+        doc.text("Manor Yearly Report", 105, yPos, { align: 'center' });
+        yPos += 10;
         
-        doc.setFontSize(12);
+        doc.setFontSize(11);
         doc.setTextColor(0, 0, 0);
-        doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 20, 35);
+        doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 20, yPos);
+        yPos += 8;
 
+        // Summary Box
         doc.autoTable({
-            startY: 50,
+            startY: yPos,
             head: [['Metric', 'Value']],
             body: [
                 ['Effective Population', data.pop],
-                ['Gross Income', data.income.toFixed(2) + ' gp'],
-                ['Total Costs', data.costs.toFixed(2) + ' gp'],
+                ['Random Event', data.event],
+                ['Gross Income (after event)', data.finalIncome.toFixed(2) + ' gp'],
+                ['Total Costs (after event)', data.finalCosts.toFixed(2) + ' gp'],
                 ['Net Profit', data.profit.toFixed(2) + ' gp'],
-                ['Maint. & Repair Roll', data.maintRepair + '%'],
-                ['Random Event', data.event]
+                ['Maint. & Repair Roll', data.maintRepair + '%']
             ],
             theme: 'grid',
             headStyles: { fillColor: [139, 69, 19] },
-            styles: { fontSize: 11 }
+            styles: { fontSize: 10 }
+        });
+
+        // Income Breakdown
+        let incomeBody = data.incomeItems.map(i => [i.label, i.amount.toFixed(2) + ' gp']);
+        incomeBody.push([{ content: 'Base Income Total', styles: { fontStyle: 'bold' } }, { content: data.totalIncome.toFixed(2) + ' gp', styles: { fontStyle: 'bold' } }]);
+        if (data.incomeMod !== 0) {
+            incomeBody.push([`Event Modifier (${(data.incomeMod*100).toFixed(0)}%)`, (data.totalIncome * data.incomeMod).toFixed(2) + ' gp']);
+        }
+        incomeBody.push([{ content: 'GROSS INCOME', styles: { fillColor: [139, 69, 19], textColor: [255, 255, 255], fontStyle: 'bold' } }, 
+                         { content: data.finalIncome.toFixed(2) + ' gp', styles: { fillColor: [139, 69, 19], textColor: [255, 255, 255], fontStyle: 'bold' } }]);
+
+        doc.autoTable({
+            startY: doc.lastAutoTable.finalY + 10,
+            head: [['Income Source', 'Amount']],
+            body: incomeBody,
+            theme: 'striped',
+            headStyles: { fillColor: [210, 180, 140], textColor: [139, 69, 19] },
+            styles: { fontSize: 9 }
+        });
+
+        // Cost Breakdown
+        let costBody = data.costItems.map(c => [c.label, c.amount.toFixed(2) + ' gp']);
+        costBody.push([{ content: 'Base Costs Total', styles: { fontStyle: 'bold' } }, { content: data.totalCosts.toFixed(2) + ' gp', styles: { fontStyle: 'bold' } }]);
+        if (data.costMod !== 0) {
+            costBody.push([`Event Modifier (+${(data.costMod*100).toFixed(0)}%)`, (data.totalCosts * data.costMod).toFixed(2) + ' gp']);
+        }
+        costBody.push([{ content: 'TOTAL COSTS', styles: { fillColor: [139, 69, 19], textColor: [255, 255, 255], fontStyle: 'bold' } }, 
+                       { content: data.finalCosts.toFixed(2) + ' gp', styles: { fillColor: [139, 69, 19], textColor: [255, 255, 255], fontStyle: 'bold' } }]);
+
+        doc.autoTable({
+            startY: doc.lastAutoTable.finalY + 10,
+            head: [['Expense', 'Amount']],
+            body: costBody,
+            theme: 'striped',
+            headStyles: { fillColor: [210, 180, 140], textColor: [139, 69, 19] },
+            styles: { fontSize: 9 }
         });
 
         doc.save(`Manor_Yearly_Report.pdf`);
